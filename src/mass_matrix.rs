@@ -1,5 +1,4 @@
 use itertools::izip;
-use multiversion::multiversion;
 use num::Float;
 use rand_distr::{Distribution, StandardNormal};
 
@@ -11,7 +10,7 @@ use crate::{
     nuts::Collector,
 };
 
-pub(crate) trait MassMatrix<T>
+pub trait MassMatrix<T>
 where
     T: Clone,
 {
@@ -20,7 +19,7 @@ where
     fn randomize_momentum<R: rand::Rng + ?Sized>(&self, state: &mut InnerState<T>, rng: &mut R);
 }
 
-pub(crate) struct NullCollector {}
+pub struct NullCollector {}
 
 impl<T> Collector<T> for NullCollector
 where
@@ -30,23 +29,23 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct DiagMassMatrix<T> {
+pub struct DiagMassMatrix<T> {
     inv_stds: Box<[T]>,
-    pub(crate) variance: Box<[T]>,
+    pub variance: Box<[T]>,
 }
 
 impl<T> DiagMassMatrix<T>
 where
     T: Float + Debug,
 {
-    pub(crate) fn new(ndim: usize) -> Self {
+    pub fn new(ndim: usize) -> Self {
         Self {
             inv_stds: vec![T::zero(); ndim].into(),
             variance: vec![T::zero(); ndim].into(),
         }
     }
 
-    pub(crate) fn update_diag(&mut self, new_variance: impl Iterator<Item = T>) {
+    pub fn update_diag(&mut self, new_variance: impl Iterator<Item = T>) {
         update_diag(&mut self.variance, &mut self.inv_stds, new_variance);
     }
 }
@@ -93,19 +92,19 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct ExpWeightedVariance<T> {
+pub struct ExpWeightedVariance<T> {
     mean: Box<[T]>,
     variance: Box<[T]>,
     count: u64,
-    pub(crate) alpha: T, // TODO
-    pub(crate) use_mean: bool,
+    pub alpha: T, // TODO
+    pub use_mean: bool,
 }
 
 impl<T> ExpWeightedVariance<T>
 where
     T: Float,
 {
-    pub(crate) fn new(dim: usize, alpha: T, use_mean: bool) -> Self {
+    pub fn new(dim: usize, alpha: T, use_mean: bool) -> Self {
         ExpWeightedVariance {
             mean: vec![T::zero(); dim].into(),
             variance: vec![T::zero(); dim].into(),
@@ -115,30 +114,30 @@ where
         }
     }
 
-    pub(crate) fn set_mean(&mut self, values: impl Iterator<Item = T>) {
+    pub fn set_mean(&mut self, values: impl Iterator<Item = T>) {
         self.mean
             .iter_mut()
             .zip(values)
             .for_each(|(out, val)| *out = val);
     }
 
-    pub(crate) fn set_variance(&mut self, values: impl Iterator<Item = T>) {
+    pub fn set_variance(&mut self, values: impl Iterator<Item = T>) {
         self.variance
             .iter_mut()
             .zip(values)
             .for_each(|(out, val)| *out = val);
     }
 
-    pub(crate) fn add_sample(&mut self, value: impl Iterator<Item = T>) {
+    pub fn add_sample(&mut self, value: impl Iterator<Item = T>) {
         add_sample(self, value);
         self.count += 1;
     }
 
-    pub(crate) fn current(&self) -> &[T] {
+    pub fn current(&self) -> &[T] {
         &self.variance
     }
 
-    pub(crate) fn count(&self) -> u64 {
+    pub fn count(&self) -> u64 {
         self.count
     }
 }
@@ -202,17 +201,17 @@ where
     }
 }
 
-pub(crate) struct DrawGradCollector<T> {
-    pub(crate) draw: Box<[T]>,
-    pub(crate) grad: Box<[T]>,
-    pub(crate) is_good: bool,
+pub struct DrawGradCollector<T> {
+    pub draw: Box<[T]>,
+    pub grad: Box<[T]>,
+    pub is_good: bool,
 }
 
 impl<T> DrawGradCollector<T>
 where
     T: Float,
 {
-    pub(crate) fn new(dim: usize) -> Self {
+    pub fn new(dim: usize) -> Self {
         DrawGradCollector {
             draw: vec![T::zero(); dim].into(),
             grad: vec![T::zero(); dim].into(),
@@ -231,7 +230,7 @@ where
         self.draw.copy_from_slice(&state.q);
         self.grad.copy_from_slice(&state.grad);
         let idx = state.index_in_trajectory();
-        if let Some(_) = info.divergence_info {
+        if info.divergence_info.is_some() {
             self.is_good = (idx <= -4) | (idx >= 4);
         } else {
             self.is_good = idx != 0;

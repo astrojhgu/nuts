@@ -1,3 +1,4 @@
+use rand::Rng;
 use thiserror::Error;
 
 use std::{fmt::Debug, marker::PhantomData};
@@ -344,12 +345,11 @@ impl<T: Send + Debug + Clone + Float, P: Hamiltonian<T>, C: Collector<T, State =
             log_size
         };
 
-        if other.log_size >= self_log_size {
-            self.draw = other.draw;
-        } else if rng.gen_bool((other.log_size - self_log_size).exp().to_f64().unwrap()) {
+        if other.log_size >= self_log_size
+            || rng.gen_bool((other.log_size - self_log_size).exp().to_f64().unwrap())
+        {
             self.draw = other.draw;
         }
-
         self.depth += 1;
         self.log_size = log_size;
     }
@@ -402,7 +402,7 @@ pub struct NutsOptions {
     pub store_gradient: bool,
 }
 
-pub(crate) fn draw<T, P, R, C>(
+pub fn draw<T, P, R, C>(
     pool: &mut <P::State as State<T>>::Pool,
     init: &mut P::State,
     rng: &mut R,
@@ -445,14 +445,13 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct NutsSampleStats<T: Send + Debug, HStats: Send + Debug, AdaptStats: Send + Debug> {
+pub struct NutsSampleStats<T: Send + Debug, HStats: Send + Debug, AdaptStats: Send + Debug> {
     pub depth: u64,
     pub maxdepth_reached: bool,
     pub idx_in_trajectory: i64,
     pub logp: T,
     pub energy: T,
     pub divergence_info: Option<Box<dyn DivergenceInfo<T>>>,
-    pub chain: u64,
     pub draw: u64,
     pub gradient: Option<Box<[T]>>,
     pub potential_stats: HStats,
@@ -565,8 +564,6 @@ where
     fn energy(&self) -> T;
     /// More detailed information if the draw came from a diverging trajectory.
     fn divergence_info(&self) -> Option<&dyn DivergenceInfo<T>>;
-    /// An ID for the chain that the sample produce the draw.
-    fn chain(&self) -> u64;
     /// The draw number
     fn draw(&self) -> u64;
     /// The logp gradient at the location of the draw. This is only stored
@@ -600,9 +597,6 @@ where
     }
     fn divergence_info(&self) -> Option<&dyn DivergenceInfo<T>> {
         self.divergence_info.as_ref().map(|x| x.as_ref())
-    }
-    fn chain(&self) -> u64 {
-        self.chain
     }
     fn draw(&self) -> u64 {
         self.draw
@@ -648,38 +642,35 @@ where
     fn set_position(&mut self, position: &[T]) -> Result<()>;
 
     /// Draw a new sample and return the position and some diagnosic information.
-    fn draw(&mut self) -> Result<(Box<[T]>, Self::Stats)>;
+    fn draw<R>(&mut self, rng: &mut R) -> Result<(Box<[T]>, Self::Stats)>
+    where R: Rng;
 
     /// The dimensionality of the posterior.
     fn dim(&self) -> usize;
 }
 
-pub(crate) struct NutsChain<T, P, R, S>
+pub struct NutsChain<T, P, S>
 where
     T: Debug + Clone + Send + Float,
     P: Hamiltonian<T>,
-    R: rand::Rng,
     S: AdaptStrategy<T, Potential = P>,
 {
     pool: <P::State as State<T>>::Pool,
     potential: P,
     collector: S::Collector,
     options: NutsOptions,
-    rng: R,
     init: P::State,
-    chain: u64,
     draw_count: u64,
     strategy: S,
 }
 
-impl<T, P, R, S> NutsChain<T, P, R, S>
+impl<T, P, S> NutsChain<T, P, S>
 where
     T: Debug + Clone + Send + Float,
     P: Hamiltonian<T>,
-    R: rand::Rng,
     S: AdaptStrategy<T, Potential = P>,
 {
-    pub fn new(mut potential: P, strategy: S, options: NutsOptions, rng: R, chain: u64) -> Self {
+    pub fn new(mut potential: P, strategy: S, options: NutsOptions) -> Self {
         let pool_size: usize = options.maxdepth.checked_mul(2).unwrap().try_into().unwrap();
         let mut pool = potential.new_pool(pool_size);
         let init = potential.new_empty_state(&mut pool);
@@ -689,9 +680,7 @@ where
             potential,
             collector,
             options,
-            rng,
             init,
-            chain,
             draw_count: 0,
             strategy,
         }
@@ -734,11 +723,10 @@ where
     ) -> Self::Stats;
 }
 
-impl<T, H, R, S> Chain<T> for NutsChain<T, H, R, S>
+impl<T, H, S> Chain<T> for NutsChain<T, H, S>
 where
     T: Float + Debug + Send,
     H: Hamiltonian<T>,
-    R: rand::Rng,
     S: AdaptStrategy<T, Potential = H>,
 {
     type Hamiltonian = H;
@@ -753,11 +741,13 @@ where
         Ok(())
     }
 
-    fn draw(&mut self) -> Result<(Box<[T]>, Self::Stats)> {
+    fn draw<R>(&mut self, rng: &mut R) -> Result<(Box<[T]>, Self::Stats)>
+    where R: Rng
+    {
         let (state, info) = draw(
             &mut self.pool,
             &mut self.init,
-            &mut self.rng,
+            rng,
             &mut self.potential,
             &self.options,
             &mut self.collector,
@@ -771,7 +761,6 @@ where
             logp: -state.potential_energy(),
             energy: state.energy(),
             divergence_info: info.divergence_info,
-            chain: self.chain,
             draw: self.draw_count,
             potential_stats: self.potential.current_stats(),
             strategy_stats: self.strategy.current_stats(

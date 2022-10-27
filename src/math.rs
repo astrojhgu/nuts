@@ -1,7 +1,7 @@
 use itertools::izip;
 use num::traits::Float;
 
-pub(crate) fn logaddexp<T>(a: T, b: T) -> T
+pub fn logaddexp<T>(a: T, b: T) -> T
 where
     T: Float,
 {

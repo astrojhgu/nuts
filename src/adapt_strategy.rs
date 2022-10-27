@@ -38,7 +38,7 @@ impl Limits<f64> for f64 {
     }
 }
 
-pub(crate) struct DualAverageStrategy<T, F, M>
+pub struct DualAverageStrategy<T, F, M>
 where
     T: Clone + Copy + Float,
 {
@@ -178,7 +178,7 @@ where
     }
 }
 
-pub(crate) struct ExpWindowDiagAdapt<T, F> {
+pub struct ExpWindowDiagAdapt<T, F> {
     dim: usize,
     num_tune: u64,
     exp_variance_draw: ExpWeightedVariance<T>,
@@ -339,13 +339,13 @@ where
     }
 }
 
-pub(crate) struct CombinedStrategy<S1, S2> {
+pub struct CombinedStrategy<S1, S2> {
     data1: S1,
     data2: S2,
 }
 
 impl<S1, S2> CombinedStrategy<S1, S2> {
-    pub(crate) fn new(s1: S1, s2: S2) -> Self {
+    pub fn new(s1: S1, s2: S2) -> Self {
         Self {
             data1: s1,
             data2: s2,
@@ -369,7 +369,7 @@ impl<T: Debug + Send + Clone, D1: AsSampleStatVec<T>, D2: AsSampleStatVec<T>> As
 }
 
 #[derive(Debug, Copy, Clone, Default)]
-pub(crate) struct CombinedOptions<O1: Copy + Send + Default, O2: Copy + Send + Default> {
+pub struct CombinedOptions<O1: Copy + Send + Default, O2: Copy + Send + Default> {
     options1: O1,
     options2: O2,
 }
@@ -440,7 +440,7 @@ where
     }
 }
 
-pub(crate) struct CombinedCollector<T: Float, C1: Collector<T>, C2: Collector<T>> {
+pub struct CombinedCollector<T: Float, C1: Collector<T>, C2: Collector<T>> {
     collector1: C1,
     collector2: C2,
     _dummy: std::marker::PhantomData<T>,
@@ -477,89 +477,3 @@ where
     }
 }
 
-#[cfg(test)]
-pub mod test_logps {
-    use crate::{cpu_potential::CpuLogpFunc, nuts::LogpError};
-    use thiserror::Error;
-
-    #[derive(Clone)]
-    pub struct NormalLogp {
-        dim: usize,
-        mu: f64,
-    }
-
-    impl NormalLogp {
-        pub(crate) fn new(dim: usize, mu: f64) -> NormalLogp {
-            NormalLogp { dim, mu }
-        }
-    }
-
-    #[derive(Error, Debug)]
-    pub enum NormalLogpError {}
-    impl LogpError for NormalLogpError {
-        fn is_recoverable(&self) -> bool {
-            false
-        }
-    }
-
-    impl CpuLogpFunc<f64> for NormalLogp {
-        type Err = NormalLogpError;
-
-        fn dim(&self) -> usize {
-            self.dim
-        }
-        fn logp(&mut self, position: &[f64], gradient: &mut [f64]) -> Result<f64, NormalLogpError> {
-            let n = position.len();
-            assert!(gradient.len() == n);
-
-            let mut logp = 0f64;
-            for (p, g) in position.iter().zip(gradient.iter_mut()) {
-                let val = *p - self.mu;
-                logp -= val * val / 2.;
-                *g = -val;
-            }
-            Ok(logp)
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::test_logps::NormalLogp;
-    use super::*;
-    use crate::nuts::{AdaptStrategy, Chain, NutsChain, NutsOptions};
-
-    #[test]
-    fn instanciate_adaptive_sampler() {
-        let ndim = 10;
-        let func = NormalLogp::new(ndim, 3.);
-        let num_tune = 100;
-        let step_size_adapt =
-            DualAverageStrategy::new(DualAverageSettings::default(), num_tune, func.dim());
-        let mass_matrix_adapt =
-            ExpWindowDiagAdapt::new(DiagAdaptExpSettings::default(), num_tune, func.dim());
-        let strategy = CombinedStrategy::new(step_size_adapt, mass_matrix_adapt);
-
-        let mass_matrix = DiagMassMatrix::new(ndim);
-        let max_energy_error = 1000f64;
-        let step_size = 0.1f64;
-
-        let potential = EuclideanPotential::new(func, mass_matrix, max_energy_error, step_size);
-        let options = NutsOptions {
-            maxdepth: 10u64,
-            store_gradient: true,
-        };
-
-        let rng = {
-            use rand::SeedableRng;
-            rand::rngs::StdRng::seed_from_u64(42)
-        };
-        let chain = 0u64;
-
-        let mut sampler = NutsChain::new(potential, strategy, options, rng, chain);
-        sampler.set_position(&vec![1.5f64; ndim]).unwrap();
-        for _ in 0..200 {
-            sampler.draw().unwrap();
-        }
-    }
-}

@@ -95,20 +95,19 @@
 //! After `2 * discard_window` draws we switch to the entimated mass mass_matrix
 //! and keep adapting it live until `stop_tune_at`.
 
-pub(crate) mod adapt_strategy;
-pub(crate) mod cpu_potential;
-pub(crate) mod cpu_sampler;
-pub(crate) mod cpu_state;
-pub(crate) mod mass_matrix;
+pub mod adapt_strategy;
+pub mod cpu_potential;
+pub mod cpu_sampler;
+pub mod cpu_state;
+pub mod mass_matrix;
 pub mod math;
-pub(crate) mod nuts;
-pub(crate) mod stepsize;
+pub mod nuts;
+pub mod stepsize;
 
 pub use adapt_strategy::DualAverageSettings;
 pub use cpu_potential::CpuLogpFunc;
-pub use cpu_sampler::test_logps;
 pub use cpu_sampler::{
-    new_sampler, sample_parallel, sample_sequentially, CpuLogpFuncMaker, InitPointFunc,
+    new_sampler, CpuLogpFuncMaker, InitPointFunc,
     JitterInitFunc, ParallelChainResult, ParallelSamplingError, SamplerArgs,
 };
 pub use mass_matrix::DiagAdaptExpSettings;

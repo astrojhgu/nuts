@@ -37,7 +37,7 @@ where
     }
 }
 
-pub(crate) struct StatePool<T>
+pub struct StatePool<T>
 where
     T: Clone + Debug,
 {
@@ -49,14 +49,14 @@ impl<T> StatePool<T>
 where
     T: Clone + Debug + Float + 'static,
 {
-    pub(crate) fn new(dim: usize) -> StatePool<T> {
+    pub fn new(dim: usize) -> StatePool<T> {
         StatePool {
             storage: Rc::new(StateStorage::new()),
             dim,
         }
     }
 
-    pub(crate) fn new_state(&mut self) -> State<T> {
+    pub fn new_state(&mut self) -> State<T> {
         let inner = match self.storage.free_states.borrow_mut().pop() {
             Some(inner) => {
                 if self.dim != inner.inner.q.len() {
@@ -83,22 +83,22 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct InnerState<T>
+pub struct InnerState<T>
 where
     T: Clone,
 {
-    pub(crate) p: Box<[T]>,
-    pub(crate) q: Box<[T]>,
-    pub(crate) v: Box<[T]>,
-    pub(crate) p_sum: Box<[T]>,
-    pub(crate) grad: Box<[T]>,
-    pub(crate) idx_in_trajectory: i64,
-    pub(crate) kinetic_energy: T,
-    pub(crate) potential_energy: T,
+    pub p: Box<[T]>,
+    pub q: Box<[T]>,
+    pub v: Box<[T]>,
+    pub p_sum: Box<[T]>,
+    pub grad: Box<[T]>,
+    pub idx_in_trajectory: i64,
+    pub kinetic_energy: T,
+    pub potential_energy: T,
 }
 
 #[derive(Debug)]
-pub(crate) struct InnerStateReusable<T>
+pub struct InnerStateReusable<T>
 where
     T: Clone,
 {
@@ -107,13 +107,13 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct AlignedArray<T> {
+pub struct AlignedArray<T> {
     size: usize,
     data: *mut T,
 }
 
 impl<T> AlignedArray<T> {
-    pub(crate) fn new(size: usize) -> Self {
+    pub fn new(size: usize) -> Self {
         let layout = AlignedArray::<T>::make_layout(size);
         // Alignment must match alignment of AlignedArrayInner
         let ptr = unsafe { std::alloc::alloc_zeroed(layout) };
@@ -145,7 +145,7 @@ where
 {
     fn clone(&self) -> Self {
         let mut new = AlignedArray::<T>::new(self.size);
-        new.copy_from_slice(&self);
+        new.copy_from_slice(self);
         new
     }
 }
@@ -193,7 +193,7 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct State<T>
+pub struct State<T>
 where
     T: Clone + Debug,
 {
@@ -212,7 +212,7 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct StateInUse {}
+pub struct StateInUse {}
 
 type Result<T> = std::result::Result<T, StateInUse>;
 
@@ -220,14 +220,14 @@ impl<T> State<T>
 where
     T: Clone + Debug,
 {
-    pub(crate) fn try_mut_inner(&mut self) -> Result<&mut InnerState<T>> {
+    pub fn try_mut_inner(&mut self) -> Result<&mut InnerState<T>> {
         match Rc::get_mut(&mut self.inner) {
             Some(val) => Ok(&mut val.inner),
             None => Err(StateInUse {}),
         }
     }
 
-    pub(crate) fn clone_inner(&self) -> InnerState<T> {
+    pub fn clone_inner(&self) -> InnerState<T> {
         self.inner.inner.clone()
     }
 }
@@ -265,9 +265,9 @@ where
 
     fn is_turning(&self, other: &Self) -> bool {
         let (start, end) = if self.idx_in_trajectory < other.idx_in_trajectory {
-            (&*self, other)
+            (self, other)
         } else {
-            (other, &*self)
+            (other, self)
         };
 
         let a = start.idx_in_trajectory;
@@ -317,7 +317,7 @@ impl<T> State<T>
 where
     T: Clone + Debug + Float,
 {
-    pub(crate) fn first_momentum_halfstep(&self, out: &mut Self, epsilon: T) {
+    pub fn first_momentum_halfstep(&self, out: &mut Self, epsilon: T) {
         axpy_out(
             &self.grad,
             &self.p,
@@ -326,17 +326,17 @@ where
         );
     }
 
-    pub(crate) fn position_step(&self, out: &mut Self, epsilon: T) {
+    pub fn position_step(&self, out: &mut Self, epsilon: T) {
         let out = out.try_mut_inner().expect("State already in use");
         axpy_out(&out.v, &self.q, epsilon, &mut out.q);
     }
 
-    pub(crate) fn second_momentum_halfstep(&mut self, epsilon: T) {
+    pub fn second_momentum_halfstep(&mut self, epsilon: T) {
         let inner = self.try_mut_inner().expect("State already in use");
         axpy(&inner.grad, &mut inner.p, epsilon / T::from(2).unwrap());
     }
 
-    pub(crate) fn set_psum(&self, target: &mut Self, _dir: crate::nuts::Direction) {
+    pub fn set_psum(&self, target: &mut Self, _dir: crate::nuts::Direction) {
         let out = target.try_mut_inner().expect("State already in use");
 
         assert!(out.idx_in_trajectory != 0);
@@ -348,11 +348,11 @@ where
         }
     }
 
-    pub(crate) fn index_in_trajectory(&self) -> i64 {
+    pub fn index_in_trajectory(&self) -> i64 {
         self.idx_in_trajectory
     }
 
-    pub(crate) fn index_in_trajectory_mut(&mut self) -> &mut i64 {
+    pub fn index_in_trajectory_mut(&mut self) -> &mut i64 {
         &mut self
             .try_mut_inner()
             .expect("State already in use")

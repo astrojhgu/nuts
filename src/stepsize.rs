@@ -82,7 +82,8 @@ where
     }
 }
 
-pub(crate) struct RunningMean<T> {
+#[derive(Default)]
+pub struct RunningMean<T> {
     sum: T,
     count: u64,
 }
@@ -103,28 +104,29 @@ where
         self.count += 1;
     }
 
-    pub(crate) fn current(&self) -> T {
+    pub fn current(&self) -> T {
         self.sum / T::from(self.count).unwrap()
     }
 
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.sum = T::zero();
         self.count = 0;
     }
 
-    pub(crate) fn count(&self) -> u64 {
+    pub fn count(&self) -> u64 {
         self.count
     }
 }
 
-pub(crate) struct AcceptanceRateCollector<T: Float, S: State<T>> {
+#[derive(Default)]
+pub struct AcceptanceRateCollector<T: Float, S: State<T>> {
     initial_energy: T,
-    pub(crate) mean: RunningMean<T>,
+    pub mean: RunningMean<T>,
     phantom: PhantomData<S>,
 }
 
 impl<T: Float, S: State<T>> AcceptanceRateCollector<T, S> {
-    pub(crate) fn new() -> AcceptanceRateCollector<T, S> {
+    pub fn new() -> AcceptanceRateCollector<T, S> {
         AcceptanceRateCollector {
             initial_energy: T::zero(),
             mean: RunningMean::new(),

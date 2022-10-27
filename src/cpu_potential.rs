@@ -25,7 +25,7 @@ pub trait CpuLogpFunc<T> {
 }
 
 #[derive(Debug)]
-pub(crate) struct DivergenceInfoImpl<T: Clone, E: Send + std::error::Error> {
+pub struct DivergenceInfoImpl<T: Clone, E: Send + std::error::Error> {
     logp_function_error: Option<E>,
     start: Option<InnerState<T>>,
     end: Option<InnerState<T>>,
@@ -85,15 +85,15 @@ impl<T: Send + Debug + Clone, E: Debug + Send + std::error::Error> DivergenceInf
     }
 }
 
-pub(crate) struct EuclideanPotential<T: Clone, F: CpuLogpFunc<T>, M: MassMatrix<T>> {
+pub struct EuclideanPotential<T: Clone, F: CpuLogpFunc<T>, M: MassMatrix<T>> {
     logp: F,
-    pub(crate) mass_matrix: M,
+    pub mass_matrix: M,
     max_energy_error: T,
-    pub(crate) step_size: T,
+    pub step_size: T,
 }
 
 impl<T: Clone, F: CpuLogpFunc<T>, M: MassMatrix<T>> EuclideanPotential<T, F, M> {
-    pub(crate) fn new(logp: F, mass_matrix: M, max_energy_error: T, step_size: T) -> Self {
+    pub fn new(logp: F, mass_matrix: M, max_energy_error: T, step_size: T) -> Self {
         EuclideanPotential {
             logp,
             mass_matrix,
@@ -104,7 +104,7 @@ impl<T: Clone, F: CpuLogpFunc<T>, M: MassMatrix<T>> EuclideanPotential<T, F, M> 
 }
 
 #[derive(Copy, Clone, Debug)]
-pub(crate) struct PotentialStats<T> {
+pub struct PotentialStats<T> {
     step_size: T,
 }
 
