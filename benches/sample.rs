@@ -1,9 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use nix::sched::{sched_setaffinity, CpuSet};
 use nix::unistd::Pid;
-use nuts_rs::math::{axpy, axpy_out, vector_dot};
-use nuts_rs::test_logps::{Maker, NormalLogp};
-use nuts_rs::{new_sampler, sample_parallel, Chain, JitterInitFunc, SamplerArgs};
+use nuts::math::{axpy, axpy_out, vector_dot};
+use nuts::test_logps::{Maker, NormalLogp};
+use nuts::{new_sampler, sample_parallel, Chain, JitterInitFunc, SamplerArgs};
 use rayon::ThreadPoolBuilder;
 
 fn make_sampler(dim: usize, mu: f64) -> impl Chain<f64> {
