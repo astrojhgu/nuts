@@ -95,7 +95,7 @@ where
 pub struct ExpWeightedVariance<T> {
     mean: Vec<T>,
     variance: Vec<T>,
-    count: u64,
+    count: usize,
     pub alpha: T, // TODO
     pub use_mean: bool,
 }
@@ -137,7 +137,7 @@ where
         &self.variance
     }
 
-    pub fn count(&self) -> u64 {
+    pub fn count(&self) -> usize {
         self.count
     }
 }
@@ -177,11 +177,11 @@ pub struct DiagAdaptExpSettings<T> {
     /// Exponenital decay parameter for the variance estimator in the first adaptation window
     pub early_variance_decay: T,
     /// Stop adaptation `final_window` draws before tuning ends.
-    pub final_window: u64,
+    pub final_window: usize,
     /// Save the current adapted mass matrix as sampler stat
     pub store_mass_matrix: bool,
     /// Switch to a new variance estimator every `window_switch_freq` draws.
-    pub window_switch_freq: u64,
+    pub window_switch_freq: usize,
     pub grad_init: bool,
 }
 

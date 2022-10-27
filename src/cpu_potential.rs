@@ -70,11 +70,11 @@ impl<T: Send + Debug + Clone, E: Debug + Send + std::error::Error> DivergenceInf
         self.energy_error.clone()
     }
 
-    fn end_idx_in_trajectory(&self) -> Option<i64> {
+    fn end_idx_in_trajectory(&self) -> Option<isize> {
         Some(self.end.as_ref()?.idx_in_trajectory)
     }
 
-    fn start_idx_in_trajectory(&self) -> Option<i64> {
+    fn start_idx_in_trajectory(&self) -> Option<isize> {
         Some(self.end.as_ref()?.idx_in_trajectory)
     }
 

@@ -33,7 +33,7 @@ pub struct DualAverage<T> {
     log_step_adapted: T,
     hbar: T,
     mu: T,
-    count: u64,
+    count: usize,
     settings: DualAverageOptions<T>,
 }
 
@@ -85,7 +85,7 @@ where
 #[derive(Default)]
 pub struct RunningMean<T> {
     sum: T,
-    count: u64,
+    count: usize,
 }
 
 impl<T> RunningMean<T>
@@ -113,7 +113,7 @@ where
         self.count = 0;
     }
 
-    pub fn count(&self) -> u64 {
+    pub fn count(&self) -> usize {
         self.count
     }
 }

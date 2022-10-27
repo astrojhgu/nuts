@@ -92,7 +92,7 @@ where
     pub v: Vec<T>,
     pub p_sum: Vec<T>,
     pub grad: Vec<T>,
-    pub idx_in_trajectory: i64,
+    pub idx_in_trajectory: isize,
     pub kinetic_energy: T,
     pub potential_energy: T,
 }
@@ -298,7 +298,7 @@ where
         self.kinetic_energy + self.potential_energy
     }
 
-    fn index_in_trajectory(&self) -> i64 {
+    fn index_in_trajectory(&self) -> isize {
         self.idx_in_trajectory
     }
 
@@ -348,11 +348,11 @@ where
         }
     }
 
-    pub fn index_in_trajectory(&self) -> i64 {
+    pub fn index_in_trajectory(&self) -> isize {
         self.idx_in_trajectory
     }
 
-    pub fn index_in_trajectory_mut(&mut self) -> &mut i64 {
+    pub fn index_in_trajectory_mut(&mut self) -> &mut isize {
         &mut self
             .try_mut_inner()
             .expect("State already in use")

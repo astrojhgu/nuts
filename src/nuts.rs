@@ -39,10 +39,10 @@ where
     fn energy_error(&self) -> Option<T>;
 
     /// The index of the end location of the diverging leapfrog.
-    fn end_idx_in_trajectory(&self) -> Option<i64>;
+    fn end_idx_in_trajectory(&self) -> Option<isize>;
 
     /// The index of the start location of the diverging leapfrog.
-    fn start_idx_in_trajectory(&self) -> Option<i64>;
+    fn start_idx_in_trajectory(&self) -> Option<isize>;
 
     /// Return the logp function error that caused the divergence if there was any
     ///
@@ -171,7 +171,7 @@ where
     /// The total energy (potential + kinetic)
     fn energy(&self) -> T;
     fn potential_energy(&self) -> T;
-    fn index_in_trajectory(&self) -> i64;
+    fn index_in_trajectory(&self) -> isize;
 
     /// Initialize the point to be the first in the trajectory.
     ///
@@ -188,7 +188,7 @@ where
 #[derive(Debug)]
 pub struct SampleInfo<T> {
     /// The depth of the trajectory that this point was sampled from
-    pub depth: u64,
+    pub depth: usize,
 
     /// More detailed information about a divergence that might have
     /// occured in the trajectory.
@@ -216,7 +216,7 @@ struct NutsTree<
     /// multinomial sampling.
     draw: P::State,
     log_size: T,
-    depth: u64,
+    depth: usize,
     initial_energy: T,
 
     /// A tree is the main tree if it contains the initial point
@@ -398,7 +398,7 @@ impl<T: Send + Debug + Clone + Float, P: Hamiltonian<T>, C: Collector<T, State =
 }
 
 pub struct NutsOptions {
-    pub maxdepth: u64,
+    pub maxdepth: usize,
     pub store_gradient: bool,
 }
 
@@ -446,13 +446,13 @@ where
 
 #[derive(Debug)]
 pub struct NutsSampleStats<T: Send + Debug, HStats: Send + Debug, AdaptStats: Send + Debug> {
-    pub depth: u64,
+    pub depth: usize,
     pub maxdepth_reached: bool,
-    pub idx_in_trajectory: i64,
+    pub idx_in_trajectory: isize,
     pub logp: T,
     pub energy: T,
     pub divergence_info: Option<Box<dyn DivergenceInfo<T>>>,
-    pub draw: u64,
+    pub draw: usize,
     pub gradient: Option<Vec<T>>,
     pub potential_stats: HStats,
     pub strategy_stats: AdaptStats,
@@ -465,9 +465,9 @@ where
 {
     Array(Vec<T>),
     OptionArray(Option<Vec<T>>),
-    U64(u64),
-    I64(i64),
-    OptionI64(Option<i64>),
+    USize(usize),
+    ISize(isize),
+    OptionISize(Option<isize>),
     FT(T),
     OptionFT(Option<T>),
     Bool(bool),
@@ -492,30 +492,30 @@ where
     }
 }
 
-impl<T> From<u64> for SampleStatValue<T>
+impl<T> From<usize> for SampleStatValue<T>
 where
     T: Debug + Clone,
 {
-    fn from(val: u64) -> Self {
-        SampleStatValue::U64(val)
+    fn from(val: usize) -> Self {
+        SampleStatValue::USize(val)
     }
 }
 
-impl<T> From<i64> for SampleStatValue<T>
+impl<T> From<isize> for SampleStatValue<T>
 where
     T: Debug + Clone,
 {
-    fn from(val: i64) -> Self {
-        SampleStatValue::I64(val)
+    fn from(val: isize) -> Self {
+        SampleStatValue::ISize(val)
     }
 }
 
-impl<T> From<Option<i64>> for SampleStatValue<T>
+impl<T> From<Option<isize>> for SampleStatValue<T>
 where
     T: Debug + Clone,
 {
-    fn from(val: Option<i64>) -> Self {
-        SampleStatValue::OptionI64(val)
+    fn from(val: Option<isize>) -> Self {
+        SampleStatValue::OptionISize(val)
     }
 }
 
@@ -552,12 +552,12 @@ where
     T: Send + Debug + Clone,
 {
     /// The depth of the NUTS tree that the draw was sampled from
-    fn depth(&self) -> u64;
+    fn depth(&self) -> usize;
     /// Whether the trajectory was stopped because the maximum size
     /// was reached.
     fn maxdepth_reached(&self) -> bool;
     /// The index of the accepted sample in the trajectory
-    fn index_in_trajectory(&self) -> i64;
+    fn index_in_trajectory(&self) -> isize;
     /// The unnormalized posterior density at the draw
     fn logp(&self) -> T;
     /// The value of the hamiltonian of the draw
@@ -565,7 +565,7 @@ where
     /// More detailed information if the draw came from a diverging trajectory.
     fn divergence_info(&self) -> Option<&dyn DivergenceInfo<T>>;
     /// The draw number
-    fn draw(&self) -> u64;
+    fn draw(&self) -> usize;
     /// The logp gradient at the location of the draw. This is only stored
     /// if NutsOptions.store_gradient is `true`.
     fn gradient(&self) -> Option<&[T]>;
@@ -580,13 +580,13 @@ where
     H: Send + Debug + AsSampleStatVec<T>,
     A: Send + Debug + AsSampleStatVec<T>,
 {
-    fn depth(&self) -> u64 {
+    fn depth(&self) -> usize {
         self.depth
     }
     fn maxdepth_reached(&self) -> bool {
         self.maxdepth_reached
     }
-    fn index_in_trajectory(&self) -> i64 {
+    fn index_in_trajectory(&self) -> isize {
         self.idx_in_trajectory
     }
     fn logp(&self) -> T {
@@ -598,7 +598,7 @@ where
     fn divergence_info(&self) -> Option<&dyn DivergenceInfo<T>> {
         self.divergence_info.as_ref().map(|x| x.as_ref())
     }
-    fn draw(&self) -> u64 {
+    fn draw(&self) -> usize {
         self.draw
     }
     fn gradient(&self) -> Option<&[T]> {
@@ -660,7 +660,7 @@ where
     collector: S::Collector,
     options: NutsOptions,
     init: P::State,
-    draw_count: u64,
+    draw_count: usize,
     strategy: S,
 }
 
@@ -696,7 +696,7 @@ where
     type Stats: Send + AsSampleStatVec<T>;
     type Options: Copy + Send + Default;
 
-    fn new(options: Self::Options, num_tune: u64, dim: usize) -> Self;
+    fn new(options: Self::Options, num_tune: usize, dim: usize) -> Self;
 
     fn init(
         &mut self,
@@ -709,7 +709,7 @@ where
         &mut self,
         options: &mut NutsOptions,
         potential: &mut Self::Potential,
-        draw: u64,
+        draw: usize,
         collector: &Self::Collector,
     );
 

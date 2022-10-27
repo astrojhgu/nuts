@@ -21,10 +21,10 @@ where
     T: Copy,
 {
     /// The number of tuning steps, where we fit the step size and mass matrix.
-    pub num_tune: u64,
+    pub num_tune: usize,
     /// The maximum tree depth during sampling. The number of leapfrog steps
     /// is smaller than 2 ^ maxdepth.
-    pub maxdepth: u64,
+    pub maxdepth: usize,
     /// Store the gradient in the SampleStats
     pub store_gradient: bool,
     /// If the energy error is larger than this threshold we treat the leapfrog
@@ -127,7 +127,7 @@ where
         store_gradient: settings.store_gradient,
     };
 
-    //let rng = { rand::rngs::StdRng::seed_from_u64(seed) };
+    //let rng = { rand::rngs::StdRng::seed_from_usize(seed) };
 
     NutsChain::new(potential, strategy, options)
 }

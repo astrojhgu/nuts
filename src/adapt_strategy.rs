@@ -44,8 +44,8 @@ where
 {
     step_size_adapt: DualAverage<T>,
     options: DualAverageSettings<T>,
-    num_tune: u64,
-    num_early: u64,
+    num_tune: usize,
+    num_early: usize,
     _phantom1: PhantomData<F>,
     _phantom2: PhantomData<M>,
 }
@@ -57,7 +57,7 @@ where
 {
     step_size_bar: T,
     mean_tree_accept: T,
-    n_steps: u64,
+    n_steps: usize,
 }
 
 impl<T> AsSampleStatVec<T> for DualAverageStats<T>
@@ -70,7 +70,7 @@ where
             "mean_tree_accept",
             SampleStatValue::FT(self.mean_tree_accept),
         ));
-        vec.push(("n_steps", SampleStatValue::U64(self.n_steps)));
+        vec.push(("n_steps", SampleStatValue::USize(self.n_steps)));
     }
 }
 
@@ -110,12 +110,12 @@ where
     type Stats = DualAverageStats<T>;
     type Options = DualAverageSettings<T>;
 
-    fn new(options: Self::Options, num_tune: u64, _dim: usize) -> Self {
+    fn new(options: Self::Options, num_tune: usize, _dim: usize) -> Self {
         Self {
             num_tune,
             num_early: (T::from(num_tune).unwrap() * options.final_window_ratio)
                 .ceil()
-                .to_u64()
+                .to_usize()
                 .unwrap(),
             options,
             step_size_adapt: DualAverage::new(options.params),
@@ -137,7 +137,7 @@ where
         &mut self,
         _options: &mut NutsOptions,
         potential: &mut Self::Potential,
-        draw: u64,
+        draw: usize,
         collector: &Self::Collector,
     ) {
         let target = if draw >= self.num_early {
@@ -180,7 +180,7 @@ where
 
 pub struct ExpWindowDiagAdapt<T, F> {
     dim: usize,
-    num_tune: u64,
+    num_tune: usize,
     exp_variance_draw: ExpWeightedVariance<T>,
     exp_variance_grad: ExpWeightedVariance<T>,
     exp_variance_draw_bg: ExpWeightedVariance<T>,
@@ -216,7 +216,7 @@ where
     type Stats = ExpWindowDiagAdaptStats<T>;
     type Options = DiagAdaptExpSettings<T>;
 
-    fn new(options: Self::Options, num_tune: u64, dim: usize) -> Self {
+    fn new(options: Self::Options, num_tune: usize, dim: usize) -> Self {
         Self {
             dim,
             num_tune: num_tune.saturating_sub(options.final_window),
@@ -267,7 +267,7 @@ where
         &mut self,
         _options: &mut NutsOptions,
         potential: &mut Self::Potential,
-        draw: u64,
+        draw: usize,
         collector: &Self::Collector,
     ) {
         if draw >= self.num_tune {
@@ -385,7 +385,7 @@ where
     type Stats = CombinedStats<S1::Stats, S2::Stats>;
     type Options = CombinedOptions<S1::Options, S2::Options>;
 
-    fn new(options: Self::Options, num_tune: u64, dim: usize) -> Self {
+    fn new(options: Self::Options, num_tune: usize, dim: usize) -> Self {
         Self {
             data1: S1::new(options.options1, num_tune, dim),
             data2: S2::new(options.options2, num_tune, dim),
@@ -406,7 +406,7 @@ where
         &mut self,
         options: &mut NutsOptions,
         potential: &mut Self::Potential,
-        draw: u64,
+        draw: usize,
         collector: &Self::Collector,
     ) {
         self.data1
