@@ -87,11 +87,11 @@ pub struct InnerState<T>
 where
     T: Clone,
 {
-    pub p: Box<[T]>,
-    pub q: Box<[T]>,
-    pub v: Box<[T]>,
-    pub p_sum: Box<[T]>,
-    pub grad: Box<[T]>,
+    pub p: Vec<T>,
+    pub q: Vec<T>,
+    pub v: Vec<T>,
+    pub p_sum: Vec<T>,
+    pub grad: Vec<T>,
     pub idx_in_trajectory: i64,
     pub kinetic_energy: T,
     pub potential_energy: T,

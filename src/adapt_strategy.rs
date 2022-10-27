@@ -191,7 +191,7 @@ pub struct ExpWindowDiagAdapt<T, F> {
 
 #[derive(Clone, Debug)]
 pub struct ExpWindowDiagAdaptStats<T> {
-    mass_matrix_inv: Option<Box<[T]>>,
+    mass_matrix_inv: Option<Vec<T>>,
 }
 
 impl<T> AsSampleStatVec<T> for ExpWindowDiagAdaptStats<T>

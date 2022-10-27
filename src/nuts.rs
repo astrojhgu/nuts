@@ -453,7 +453,7 @@ pub struct NutsSampleStats<T: Send + Debug, HStats: Send + Debug, AdaptStats: Se
     pub energy: T,
     pub divergence_info: Option<Box<dyn DivergenceInfo<T>>>,
     pub draw: u64,
-    pub gradient: Option<Box<[T]>>,
+    pub gradient: Option<Vec<T>>,
     pub potential_stats: HStats,
     pub strategy_stats: AdaptStats,
 }
@@ -463,8 +463,8 @@ pub enum SampleStatValue<T>
 where
     T: Debug + Clone,
 {
-    Array(Box<[T]>),
-    OptionArray(Option<Box<[T]>>),
+    Array(Vec<T>),
+    OptionArray(Option<Vec<T>>),
     U64(u64),
     I64(i64),
     OptionI64(Option<i64>),
@@ -474,20 +474,20 @@ where
     String(String),
 }
 
-impl<T> From<Box<[T]>> for SampleStatValue<T>
+impl<T> From<Vec<T>> for SampleStatValue<T>
 where
     T: Debug + Clone,
 {
-    fn from(val: Box<[T]>) -> Self {
+    fn from(val: Vec<T>) -> Self {
         SampleStatValue::Array(val)
     }
 }
 
-impl<T> From<Option<Box<[T]>>> for SampleStatValue<T>
+impl<T> From<Option<Vec<T>>> for SampleStatValue<T>
 where
     T: Debug + Clone,
 {
-    fn from(val: Option<Box<[T]>>) -> Self {
+    fn from(val: Option<Vec<T>>) -> Self {
         SampleStatValue::OptionArray(val)
     }
 }
@@ -618,7 +618,7 @@ where
             info.add_to_vec(&mut vec);
         }
         if let Some(grad) = self.gradient() {
-            vec.push(("gradient", grad.to_vec().into_boxed_slice().into()));
+            vec.push(("gradient", grad.to_vec().into()));
         } else {
             vec.push(("gradient", SampleStatValue::OptionArray(None)));
         }
@@ -642,7 +642,7 @@ where
     fn set_position(&mut self, position: &[T]) -> Result<()>;
 
     /// Draw a new sample and return the position and some diagnosic information.
-    fn draw<R>(&mut self, rng: &mut R) -> Result<(Box<[T]>, Self::Stats)>
+    fn draw<R>(&mut self, rng: &mut R) -> Result<(Vec<T>, Self::Stats)>
     where R: Rng;
 
     /// The dimensionality of the posterior.
@@ -741,7 +741,7 @@ where
         Ok(())
     }
 
-    fn draw<R>(&mut self, rng: &mut R) -> Result<(Box<[T]>, Self::Stats)>
+    fn draw<R>(&mut self, rng: &mut R) -> Result<(Vec<T>, Self::Stats)>
     where R: Rng
     {
         let (state, info) = draw(
@@ -752,7 +752,7 @@ where
             &self.options,
             &mut self.collector,
         )?;
-        let mut position: Box<[T]> = vec![T::zero(); self.potential.dim()].into();
+        let mut position: Vec<T> = vec![T::zero(); self.potential.dim()];
         state.write_position(&mut position);
         let stats = NutsSampleStats {
             depth: info.depth,
@@ -769,7 +769,7 @@ where
                 &self.collector,
             ),
             gradient: if self.options.store_gradient {
-                let mut gradient: Box<[T]> = vec![T::zero(); self.potential.dim()].into();
+                let mut gradient: Vec<T> = vec![T::zero(); self.potential.dim()];
                 state.write_gradient(&mut gradient);
                 Some(gradient)
             } else {

@@ -30,8 +30,8 @@ where
 
 #[derive(Debug)]
 pub struct DiagMassMatrix<T> {
-    inv_stds: Box<[T]>,
-    pub variance: Box<[T]>,
+    inv_stds: Vec<T>,
+    pub variance: Vec<T>,
 }
 
 impl<T> DiagMassMatrix<T>
@@ -93,8 +93,8 @@ where
 
 #[derive(Debug)]
 pub struct ExpWeightedVariance<T> {
-    mean: Box<[T]>,
-    variance: Box<[T]>,
+    mean: Vec<T>,
+    variance: Vec<T>,
     count: u64,
     pub alpha: T, // TODO
     pub use_mean: bool,
@@ -202,8 +202,8 @@ where
 }
 
 pub struct DrawGradCollector<T> {
-    pub draw: Box<[T]>,
-    pub grad: Box<[T]>,
+    pub draw: Vec<T>,
+    pub grad: Vec<T>,
     pub is_good: bool,
 }
 

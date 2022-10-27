@@ -135,7 +135,7 @@ where
 /// Initialize chains using uniform jitter around zero or some other provided value
 #[derive(Default)]
 pub struct JitterInitFunc<T> {
-    mu: Option<Box<[T]>>,
+    mu: Option<Vec<T>>,
 }
 
 impl<T> JitterInitFunc<T> {
@@ -145,7 +145,7 @@ impl<T> JitterInitFunc<T> {
     }
 
     /// Initialize new chains with jitter in [mu - 1, mu + 1].
-    pub fn new_with_mean(mu: Box<[T]>) -> Self {
+    pub fn new_with_mean(mu: Vec<T>) -> Self {
         Self { mu: Some(mu) }
     }
 }
