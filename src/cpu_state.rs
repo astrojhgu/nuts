@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     fmt::Debug,
-    ops::{Deref, DerefMut},
+    ops::{Deref},
     rc::{Rc, Weak},
 };
 
@@ -106,65 +106,6 @@ where
     reuser: Weak<dyn ReuseState<T>>,
 }
 
-#[derive(Debug)]
-pub struct AlignedArray<T> {
-    size: usize,
-    data: *mut T,
-}
-
-impl<T> AlignedArray<T> {
-    pub fn new(size: usize) -> Self {
-        let layout = AlignedArray::<T>::make_layout(size);
-        // Alignment must match alignment of AlignedArrayInner
-        let ptr = unsafe { std::alloc::alloc_zeroed(layout) };
-        if ptr.is_null() {
-            std::alloc::handle_alloc_error(layout);
-        }
-        Self {
-            data: ptr as *mut T,
-            size,
-        }
-    }
-
-    fn make_layout(size: usize) -> std::alloc::Layout {
-        std::alloc::Layout::from_size_align(std::mem::size_of::<T>().checked_mul(size).unwrap(), 64)
-            .unwrap()
-    }
-}
-
-impl<T> Drop for AlignedArray<T> {
-    fn drop(&mut self) {
-        let layout = AlignedArray::<T>::make_layout(self.size);
-        unsafe { std::alloc::dealloc(self.data as *mut u8, layout) };
-    }
-}
-
-impl<T> Clone for AlignedArray<T>
-where
-    T: Copy,
-{
-    fn clone(&self) -> Self {
-        let mut new = AlignedArray::<T>::new(self.size);
-        new.copy_from_slice(self);
-        new
-    }
-}
-
-impl<T> Deref for AlignedArray<T> {
-    type Target = [T];
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { std::slice::from_raw_parts(self.data, self.size) }
-    }
-}
-
-impl<T> DerefMut for AlignedArray<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { std::slice::from_raw_parts_mut(self.data, self.size) }
-    }
-}
-
-unsafe impl<T> Send for AlignedArray<T> where T: Send {}
 
 impl<T> InnerStateReusable<T>
 where
