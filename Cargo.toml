@@ -1,45 +1,48 @@
-[package]
-name = "nuts"
-version = "0.3.0"
-authors = ["GU Junhua <jhgu@nao.cas.cn>"]
-edition = "2021"
-license = "MIT"
-#started as a fork of "https://github.com/aseyboldt/nuts-rs"
-repository = "https://github.com/astrojhgu/nuts"
-keywords = ["statistics", "bayes"]
-description = "Sample from unnormalized densities using Hamiltonian MCMC forked from nuts-rs"
-
-[profile.release]
-debug = true
-lto = "fat"
-opt-level = 2
-codegen-units = 1
-
-[profile.bench]
-debug = true
-lto = "fat"
-opt-level = 2
-codegen-units = 1
-
 [dependencies]
-rand = { version = "0.8.5", features = ["small_rng"] }
-rand_distr = "0.4.3"
-itertools = "0.10.3"
-crossbeam = "0.8.1"
-thiserror = "1.0.31"
-rayon = "1.5.3"
-ndarray = "0.15.4"
-num='0.4.0'
+autodiff = '0.5.1'
+crossbeam = '0.8.2'
+itertools = '0.10.5'
+ndarray = '0.15.6'
+num = '0.4.0'
+rand_distr = '0.4.3'
+rayon = '1.5.3'
+thiserror = '1.0.37'
+
+[dependencies.rand]
+features = ['small_rng']
+version = '0.8.5'
 
 [dev-dependencies]
-proptest = "1.0.0"
-pretty_assertions = "1.2.1"
-criterion = "0.4.0"
-nix = "0.25.0"
-approx = "0.5.1"
-
+approx = '0.5.1'
+criterion = '0.4.0'
+nix = '0.25.0'
+pretty_assertions = '1.2.1'
+proptest = '1.0.0'
 
 [features]
-nightly = ["simd_support"]
-
+nightly = ['simd_support']
 simd_support = []
+
+[package]
+authors = ['GU Junhua <jhgu@nao.cas.cn>']
+description = 'Sample from unnormalized densities using Hamiltonian MCMC forked from nuts-rs'
+edition = '2021'
+keywords = [
+    'statistics',
+    'bayes',
+]
+license = 'MIT'
+name = 'nuts'
+repository = 'https://github.com/astrojhgu/nuts'
+version = '0.3.0'
+[profile.bench]
+codegen-units = 1
+debug = true
+lto = 'fat'
+opt-level = 2
+
+[profile.release]
+codegen-units = 1
+debug = true
+lto = 'fat'
+opt-level = 2

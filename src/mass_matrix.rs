@@ -1,6 +1,6 @@
 use itertools::izip;
 use num::Float;
-use rand_distr::{Distribution, StandardNormal};
+use rand_distr::{StandardNormal};
 
 use std::fmt::Debug;
 
@@ -68,7 +68,6 @@ fn update_diag<T>(
 impl<T> MassMatrix<T> for DiagMassMatrix<T>
 where
     T: Clone + Float,
-    StandardNormal: Distribution<T>,
 {
     fn update_velocity(&self, state: &mut InnerState<T>) {
         multiply(&self.variance, &state.p, &mut state.v);
@@ -79,13 +78,12 @@ where
     }
 
     fn randomize_momentum<R: rand::Rng + ?Sized>(&self, state: &mut InnerState<T>, rng: &mut R) {
-        let dist = rand_distr::StandardNormal;
         state
             .p
             .iter_mut()
             .zip(self.inv_stds.iter())
             .for_each(|(p, &s)| {
-                let norm: T = rng.sample(dist);
+                let norm: T = T::from(rng.sample::<f64,_>(StandardNormal)).unwrap();
                 *p = s * norm;
             });
     }

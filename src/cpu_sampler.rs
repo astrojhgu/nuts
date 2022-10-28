@@ -1,6 +1,5 @@
 use num::Float;
 use rand::Rng;
-use rand_distr::{Distribution, StandardNormal};
 use std::fmt::Debug;
 use thiserror::Error;
 
@@ -106,8 +105,6 @@ pub fn new_sampler<T: Copy + Float + Debug + Send + Limits<T> + 'static, F: CpuL
     settings: SamplerArgs<T>,
 ) -> NutsChainT<T, F>
 //-> impl Chain<T>
-where
-    StandardNormal: Distribution<T>,
 {
     use crate::nuts::AdaptStrategy;
     let num_tune = settings.num_tune;

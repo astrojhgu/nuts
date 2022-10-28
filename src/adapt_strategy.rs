@@ -1,9 +1,9 @@
 use std::{fmt::Debug, iter, marker::PhantomData};
 
+use autodiff::FT;
 use num::traits::Float;
 
 use itertools::izip;
-use rand_distr::{Distribution, StandardNormal};
 
 use crate::{
     cpu_potential::{CpuLogpFunc, EuclideanPotential},
@@ -37,6 +37,18 @@ impl Limits<f64> for f64 {
         1e10
     }
 }
+
+impl<T> Limits<FT<T>> for FT<T>
+where T: Limits<T>+Float+Debug{
+    fn lower_limit() -> FT<T>{
+        T::lower_limit().into()
+    }
+
+    fn upper_limit() -> FT<T>{
+        T::upper_limit().into()
+    }
+}
+
 
 pub struct DualAverageStrategy<T, F, M>
 where
@@ -208,8 +220,8 @@ where
 
 impl<T: Float + Limits<T> + Send + Clone + Debug + Float + 'static, F: CpuLogpFunc<T>>
     AdaptStrategy<T> for ExpWindowDiagAdapt<T, F>
-where
-    StandardNormal: Distribution<T>,
+//where
+    //StandardNormal: Distribution<T>,
 {
     type Potential = EuclideanPotential<T, F, DiagMassMatrix<T>>;
     type Collector = DrawGradCollector<T>;
