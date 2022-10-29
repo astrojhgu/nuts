@@ -58,7 +58,7 @@ fn main() {
 
     let seed = 42;
     //let x0 = vec![0f64.into(); logp_func.dim()];
-    let x0 = vec![3.5,-1.8];
+    let x0 = vec![3.5, -1.8];
     let mut sampler = new_sampler(logp_func, sampler_args);
 
     // Set to some initial position and start drawing samples.
@@ -69,19 +69,20 @@ fn main() {
     //let mut stats = vec![]; // Collection of statistics like the acceptance rate for each draw
     let mut outfile = std::fs::File::create("a.txt").unwrap();
     let mut rng = rand::rngs::SmallRng::seed_from_u64(seed);
-    for _ in 0..200000 {
+    for i in 0..200000000 {
         let (draw, info): (Vec<_>, _) = sampler
             .draw(&mut rng)
             .expect("Unrecoverable error during sampling");
-        for i in 0..sampler.dim() {
-            write!(&mut outfile, " {}", draw[i]).unwrap();
+        if i % 10000 == 0 {
+            for j in 0..sampler.dim() {
+                write!(&mut outfile, " {}", draw[j]).unwrap();
+            }
+            writeln!(&mut outfile).unwrap();
         }
-        writeln!(&mut outfile).unwrap();
         //trace.push(draw);
         let _info_vec = info.to_vec(); // We can collect the stats in a Vec
                                        // Or get more detailed information about divergences
 
-        
         if let Some(div_info) = info.divergence_info() {
             println!("Divergence at position {:?}", div_info.start_location());
         }
