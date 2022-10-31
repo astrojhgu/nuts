@@ -1,13 +1,18 @@
-use std::fmt::Debug;
+use std::{fmt::Debug
+    , sync::Arc
+};
 
 use num::Float;
 
-use crate::cpu_state::{InnerState, State, StatePool};
-use crate::mass_matrix::MassMatrix;
-use crate::nuts::{
-    AsSampleStatVec, Collector, Direction, DivergenceInfo, Hamiltonian, LogpError, NutsError,
+use thiserror::Error;
+use crate::{
+    cpu_state::{InnerState, State, StatePool},
+    mass_matrix::MassMatrix,
+    nuts::{
+        AsSampleStatVec, Collector, Direction, DivergenceInfo, Hamiltonian, LogpError, NutsError,SampleStatValue
+    },
+    forward_autodiff::{F, eval_grad},
 };
-use crate::SampleStatValue;
 
 /// Compute the unnormalized log probability density of the posterior
 ///
@@ -23,6 +28,56 @@ pub trait CpuLogpFunc<T> {
     fn logp(&mut self, position: &[T], grad: &mut [T]) -> Result<T, Self::Err>;
     fn dim(&self) -> usize;
 }
+
+
+#[derive(Debug, Error)]
+pub enum EmptyLogpError {}
+
+
+impl LogpError for EmptyLogpError {
+    fn is_recoverable(&self) -> bool {
+        false
+    }
+}
+
+#[derive(Clone)]
+pub struct LogpFromFn<T>
+where T: Float
+{
+    pub func: Arc<dyn Fn(&[F<T>]) -> F<T>>,
+    pub beta: T,
+    pub dim: usize
+}
+
+
+impl<T> CpuLogpFunc<T> for LogpFromFn<T>
+where T: Float
+{
+    type Err=EmptyLogpError;
+    fn dim(&self)->usize{
+        self.dim
+    }
+
+    fn logp(&mut self, position: &[T], grad: &mut [T]) -> Result<T, Self::Err>{
+        let logp = eval_grad(self.func.as_ref(), position, grad);
+        grad.iter_mut().for_each(|x| *x=*x*self.beta);
+        Ok(logp*self.beta)
+    }
+}
+
+impl<T> LogpFromFn<T>
+where T: Float{
+    pub fn new<G>(func: G, dim: usize)->Self
+    where G: Fn(&[F<T>]) -> F<T>+'static
+    {
+        Self{func: Arc::new(func), dim, beta: T::one()}
+    }
+
+    fn with_beta(&self, beta: T)->Self{
+        Self { func: Arc::clone(&self.func), beta, dim: self.dim }
+    }
+}
+
 
 #[derive(Debug)]
 pub struct DivergenceInfoImpl<T: Clone, E: Send + std::error::Error> {

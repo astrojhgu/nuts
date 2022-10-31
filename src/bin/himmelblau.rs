@@ -2,6 +2,7 @@ use autodiff::Float;
 use nuts::{
     forward_autodiff::{eval_grad, F},
     new_sampler, Chain, CpuLogpFunc, LogpError, SampleStats, SamplerArgs,
+    LogpFromFn
 };
 use rand::SeedableRng;
 use std::io::Write;
@@ -9,6 +10,7 @@ use thiserror::Error;
 
 // Define a function that computes the unnormalized posterior density
 // and its gradient.
+#[derive(Clone)]
 struct PosteriorDensity {}
 
 // The density might fail in a recoverable or non-recoverable manner...
@@ -54,15 +56,22 @@ fn main() {
     sampler_args.mass_matrix_adapt.store_mass_matrix = true;
 
     // We instanciate our posterior density function
-    let logp_func = PosteriorDensity {};
+    //let logp_func = PosteriorDensity {};
+    let logp_func=LogpFromFn::new(posterior, 2);
 
     let seed = 42;
     //let x0 = vec![0f64.into(); logp_func.dim()];
     let x0 = vec![3.5, -1.8];
-    let mut sampler = new_sampler(logp_func, sampler_args);
+    let mut sampler = new_sampler(logp_func.clone(), sampler_args.clone());
+
+    let mut sampler2 = new_sampler(logp_func, sampler_args);
 
     // Set to some initial position and start drawing samples.
     sampler
+        .set_position(&x0)
+        .expect("Unrecoverable error during init");
+
+    sampler2
         .set_position(&x0)
         .expect("Unrecoverable error during init");
     //let mut trace = vec![]; // Collection of all draws
@@ -73,11 +82,19 @@ fn main() {
         let (draw, info): (Vec<_>, _) = sampler
             .draw(&mut rng)
             .expect("Unrecoverable error during sampling");
+
+        let (_draw, _info): (Vec<_>, _) = sampler2
+            .draw(&mut rng)
+            .expect("Unrecoverable error during sampling");
+
+        let draw1:Vec<_>=draw.iter().map(|&x| F64::from(x)).collect();
+        assert_eq!(info.logp(), posterior(&draw1).x);
         if i % 10000 == 0 {
             for j in 0..sampler.dim() {
                 write!(&mut outfile, " {}", draw[j]).unwrap();
             }
             writeln!(&mut outfile).unwrap();
+            sampler.swap(&mut sampler2);
         }
         //trace.push(draw);
         let _info_vec = info.to_vec(); // We can collect the stats in a Vec

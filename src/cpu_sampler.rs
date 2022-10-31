@@ -87,15 +87,6 @@ pub enum ParallelSamplingError {
 
 pub type ParallelChainResult = Result<(), ParallelSamplingError>;
 
-pub trait CpuLogpFuncMaker<T>: Send + Sync
-where
-    T: Send + Sync,
-{
-    type Func: CpuLogpFunc<T>;
-
-    fn make_logp_func(&self) -> Result<Self::Func, Box<dyn std::error::Error + Send + Sync>>;
-    fn dim(&self) -> usize;
-}
 
 pub type NutsChainT<T, F>=NutsChain<T, EuclideanPotential<T, F, DiagMassMatrix<T>>, CombinedStrategy<DualAverageStrategy<T, F, DiagMassMatrix<T>>, ExpWindowDiagAdapt<T, F>>>;
 

@@ -1132,7 +1132,7 @@ T: Float,
 }
 
 pub fn eval_grad<G, T>(f: &G, x0: &[T], grad: &mut [T])->T
-where G: Fn(&[F<T>]) -> F<T>,
+where G: Fn(&[F<T>]) -> F<T> + ?Sized,
 T: Float{
     let mut nums: Vec<F<T>> = x0.iter().map(|&x| F::cst(x)).collect();
 

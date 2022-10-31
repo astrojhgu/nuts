@@ -106,9 +106,12 @@ pub mod stepsize;
 pub mod forward_autodiff;
 
 pub use adapt_strategy::DualAverageSettings;
-pub use cpu_potential::CpuLogpFunc;
+pub use cpu_potential::{CpuLogpFunc
+    , LogpFromFn
+    , EmptyLogpError
+};
 pub use cpu_sampler::{
-    new_sampler, CpuLogpFuncMaker, InitPointFunc,
+    new_sampler, InitPointFunc,
     JitterInitFunc, ParallelChainResult, ParallelSamplingError, SamplerArgs,
 };
 pub use mass_matrix::DiagAdaptExpSettings;
