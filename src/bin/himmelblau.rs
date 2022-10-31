@@ -1,8 +1,9 @@
 use autodiff::Float;
 use nuts::{
     forward_autodiff::{eval_grad, F},
-    new_sampler, Chain, CpuLogpFunc, LogpError, SampleStats, SamplerArgs,
-    LogpFromFn
+    new_sampler,
+    nuts::State,
+    Chain, CpuLogpFunc, LogpError, LogpFromFn, SampleStats, SamplerArgs,
 };
 use rand::SeedableRng;
 use std::io::Write;
@@ -57,7 +58,7 @@ fn main() {
 
     // We instanciate our posterior density function
     //let logp_func = PosteriorDensity {};
-    let logp_func=LogpFromFn::new(posterior, 2);
+    let logp_func = LogpFromFn::new(posterior, 2);
 
     let seed = 42;
     //let x0 = vec![0f64.into(); logp_func.dim()];
@@ -87,8 +88,11 @@ fn main() {
             .draw(&mut rng)
             .expect("Unrecoverable error during sampling");
 
-        let draw1:Vec<_>=draw.iter().map(|&x| F64::from(x)).collect();
+        let draw1: Vec<_> = draw.iter().map(|&x| F64::from(x)).collect();
         assert_eq!(info.logp(), posterior(&draw1).x);
+
+        assert_eq!(info.logp(), -sampler.current.potential_energy());
+
         if i % 10000 == 0 {
             for j in 0..sampler.dim() {
                 write!(&mut outfile, " {}", draw[j]).unwrap();

@@ -663,7 +663,7 @@ where
     potential: P,
     collector: S::Collector,
     options: NutsOptions,
-    init: P::State,
+    pub current: P::State,
     draw_count: usize,
     strategy: S,
 }
@@ -684,7 +684,7 @@ where
             potential,
             collector,
             options,
-            init,
+            current: init,
             draw_count: 0,
             strategy,
         }
@@ -739,14 +739,14 @@ where
 
     fn set_position(&mut self, position: &[T]) -> Result<()> {
         let state = self.potential.init_state(&mut self.pool, position)?;
-        self.init = state;
+        self.current = state;
         self.strategy
-            .init(&mut self.options, &mut self.potential, &self.init);
+            .init(&mut self.options, &mut self.potential, &self.current);
         Ok(())
     }
 
     fn swap(&mut self, rhs: &mut Self){
-        self.init.swap(&mut rhs.init);
+        self.current.swap(&mut rhs.current);
     }
 
     fn draw<R>(&mut self, rng: &mut R) -> Result<(Vec<T>, Self::Stats)>
@@ -754,7 +754,7 @@ where
     {
         let (state, info) = draw(
             &mut self.pool,
-            &mut self.init,
+            &mut self.current,
             rng,
             &mut self.potential,
             &self.options,
@@ -790,7 +790,7 @@ where
             self.draw_count,
             &self.collector,
         );
-        self.init = state;
+        self.current = state;
         self.draw_count += 1;
         Ok((position, stats))
     }
