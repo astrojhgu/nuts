@@ -1,87 +1,15 @@
 use std::{
-    cell::RefCell,
     fmt::Debug,
-    ops::{Deref},
-    rc::{Rc, Weak},
+    ops::Deref,
+    rc::{Rc}, sync::Arc,
 };
+
+pub type StatePool<T> = lockfree_object_pool::LinearObjectPool<T>;
+pub type InnerStateReusable<T> = lockfree_object_pool::LinearOwnedReusable<T>;
 
 use num::traits::Float;
 
 use crate::math::{axpy, axpy_out, scalar_prods2, scalar_prods3};
-
-#[derive(Debug)]
-struct StateStorage<T>
-where
-    T: Clone + Debug,
-{
-    free_states: RefCell<Vec<Rc<InnerStateReusable<T>>>>,
-}
-
-impl<T> StateStorage<T>
-where
-    T: Clone + Debug,
-{
-    fn new() -> StateStorage<T> {
-        StateStorage {
-            free_states: RefCell::new(Vec::with_capacity(20)),
-        }
-    }
-}
-
-impl<T> ReuseState<T> for StateStorage<T>
-where
-    T: Clone + Debug,
-{
-    fn reuse_state(&self, state: Rc<InnerStateReusable<T>>) {
-        self.free_states.borrow_mut().push(state)
-    }
-}
-
-pub struct StatePool<T>
-where
-    T: Clone + Debug,
-{
-    storage: Rc<StateStorage<T>>,
-    dim: usize,
-}
-
-impl<T> StatePool<T>
-where
-    T: Clone + Debug + Float + 'static,
-{
-    pub fn new(dim: usize) -> StatePool<T> {
-        StatePool {
-            storage: Rc::new(StateStorage::new()),
-            dim,
-        }
-    }
-
-    pub fn new_state(&mut self) -> State<T> {
-        let inner = match self.storage.free_states.borrow_mut().pop() {
-            Some(inner) => {
-                if self.dim != inner.inner.q.len() {
-                    panic!("dim mismatch");
-                }
-                inner
-            }
-            None => {
-                //let owner: Rc<dyn ReuseState<T>> = self.storage.clone();
-                let owner = Rc::clone(&self.storage) as Rc<dyn ReuseState<T>>;
-                Rc::new(InnerStateReusable::<T>::new(self.dim, &owner))
-            }
-        };
-        State {
-            inner: std::mem::ManuallyDrop::new(inner),
-        }
-    }
-}
-
-trait ReuseState<T>: Debug
-where
-    T: Clone + Debug,
-{
-    fn reuse_state(&self, state: Rc<InnerStateReusable<T>>);
-}
 
 #[derive(Debug, Clone)]
 pub struct InnerState<T>
@@ -98,48 +26,28 @@ where
     pub potential_energy: T,
 }
 
-#[derive(Debug)]
-pub struct InnerStateReusable<T>
-where
-    T: Clone,
-{
-    inner: InnerState<T>,
-    reuser: Weak<dyn ReuseState<T>>,
-}
-
-
-impl<T> InnerStateReusable<T>
-where
-    T: Clone + Float,
-{
-    fn new(size: usize, owner: &Rc<dyn ReuseState<T>>) -> InnerStateReusable<T> {
-        InnerStateReusable {
-            inner: InnerState {
-                p: vec![T::zero(); size].into(),
-                //p: AlignedArray::new(size),
-                q: vec![T::zero(); size].into(),
-                //q: AlignedArray::new(size),
-                v: vec![T::zero(); size].into(),
-                //v: AlignedArray::new(size),
-                p_sum: vec![T::zero(); size].into(),
-                //p_sum: AlignedArray::new(size),
-                grad: vec![T::zero(); size].into(),
-                //grad: AlignedArray::new(size),
-                idx_in_trajectory: 0,
-                kinetic_energy: T::zero(),
-                potential_energy: T::zero(),
-            },
-            reuser: Rc::downgrade(owner),
-        }
+impl<T> InnerState<T>
+where T: Clone+Float{
+    pub fn new(dim: usize)->Self{
+        InnerState { p: vec![T::zero(); dim], q: vec![T::zero(); dim], v: vec![T::zero(); dim], p_sum: vec![T::zero(); dim], grad: vec![T::zero(); dim], idx_in_trajectory: 0, kinetic_energy: T::zero(), potential_energy: T::zero() }
     }
 }
 
-#[derive(Debug)]
 pub struct State<T>
 where
     T: Clone + Debug,
 {
-    inner: std::mem::ManuallyDrop<Rc<InnerStateReusable<T>>>,
+    //inner: std::mem::ManuallyDrop<Rc<InnerStateReusable<T>>>,
+    pub inner: Rc<InnerStateReusable<InnerState<T>>>,
+}
+
+impl<T> Debug for State<T>
+where
+    T: Clone + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "state")
+    }
 }
 
 impl<T> Deref for State<T>
@@ -149,7 +57,7 @@ where
     type Target = InnerState<T>;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner.inner
+        &self.inner
     }
 }
 
@@ -164,27 +72,12 @@ where
 {
     pub fn try_mut_inner(&mut self) -> Result<&mut InnerState<T>> {
         match Rc::get_mut(&mut self.inner) {
-            Some(val) => Ok(&mut val.inner),
+            Some(val) => Ok( val),
             None => Err(StateInUse {}),
         }
     }
-
     pub fn clone_inner(&self) -> InnerState<T> {
-        self.inner.inner.clone()
-    }
-}
-
-impl<T> Drop for State<T>
-where
-    T: Clone + Debug,
-{
-    fn drop(&mut self) {
-        let mut rc = unsafe { std::mem::ManuallyDrop::take(&mut self.inner) };
-        if let Some(state_ref) = Rc::get_mut(&mut rc) {
-            if let Some(reuser) = &mut state_ref.reuser.upgrade() {
-                reuser.reuse_state(rc);
-            }
-        }
+        (*self.inner.as_ref()).clone()
     }
 }
 
@@ -203,7 +96,7 @@ impl<T> crate::nuts::State<T> for State<T>
 where
     T: Clone + Debug + Float,
 {
-    type Pool = StatePool<T>;
+    type Pool = Arc<StatePool<InnerState<T>>>;
 
     fn is_turning(&self, other: &Self) -> bool {
         let (start, end) = if self.idx_in_trajectory < other.idx_in_trajectory {
@@ -302,33 +195,3 @@ where
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn crate_pool() {
-        let mut pool = StatePool::<f64>::new(10);
-        let mut state = pool.new_state();
-        assert!(state.p.len() == 10);
-        state.try_mut_inner().unwrap();
-
-        let mut state2 = state.clone();
-        assert!(state.try_mut_inner().is_err());
-        assert!(state2.try_mut_inner().is_err());
-    }
-
-    #[test]
-    fn make_state() {
-        let dim = 10;
-        let mut pool = StatePool::<f64>::new(dim);
-        let a = pool.new_state();
-
-        assert_eq!(a.idx_in_trajectory, 0);
-        assert!(a.p_sum.iter().all(|&x| x == 0.0));
-        assert_eq!(a.p_sum.len(), dim);
-        assert_eq!(a.grad.len(), dim);
-        assert_eq!(a.q.len(), dim);
-        assert_eq!(a.p.len(), dim);
-    }
-}

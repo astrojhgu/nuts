@@ -1,6 +1,8 @@
 use std::{fmt::Debug
-    , sync::Arc
+    , sync::Arc, rc::Rc
 };
+
+
 
 use num::Float;
 
@@ -182,13 +184,13 @@ impl<T: Float + Send + Debug + Clone + 'static, F: CpuLogpFunc<T>, M: MassMatrix
 
     fn leapfrog<C: Collector<T, State = Self::State>>(
         &mut self,
-        pool: &mut StatePool<T>,
+        pool: &mut Arc<StatePool<InnerState<T>>>,
         start: &Self::State,
         dir: Direction,
         initial_energy: T,
         collector: &mut C,
     ) -> Result<Result<Self::State, Self::DivergenceInfo>, NutsError> {
-        let mut out = pool.new_state();
+        let mut out = State{inner: Rc::new(pool.pull_owned())};
 
         let sign = match dir {
             Direction::Forward => 1,
@@ -246,10 +248,10 @@ impl<T: Float + Send + Debug + Clone + 'static, F: CpuLogpFunc<T>, M: MassMatrix
 
     fn init_state(
         &mut self,
-        pool: &mut StatePool<T>,
+        pool: &mut Arc<StatePool<InnerState<T>>>,
         init: &[T],
     ) -> Result<Self::State, NutsError> {
-        let mut state = pool.new_state();
+        let mut state = State{inner: Rc::new(pool.pull_owned())};
         {
             let inner = state.try_mut_inner().expect("State already in use");
             inner.q.copy_from_slice(init);
@@ -273,12 +275,16 @@ impl<T: Float + Send + Debug + Clone + 'static, F: CpuLogpFunc<T>, M: MassMatrix
         }
     }
 
-    fn new_empty_state(&mut self, pool: &mut StatePool<T>) -> Self::State {
-        pool.new_state()
+    fn new_empty_state(&mut self, pool: &mut Arc<StatePool<InnerState<T>>>) -> Self::State {
+        State{
+            inner: Rc::new(pool.pull_owned())
+        }
     }
 
-    fn new_pool(&mut self, _capacity: usize) -> StatePool<T> {
-        StatePool::new(self.dim())
+    fn new_pool(&mut self, _capacity: usize) -> Arc<StatePool<InnerState<T>>> {
+        //StatePool::new(self.dim())
+        let dim=self.dim();
+        Arc::new(StatePool::new(move|| InnerState::new(dim), |_|{}))
     }
 
     fn dim(&self) -> usize {
