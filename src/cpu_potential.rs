@@ -73,7 +73,7 @@ where T: Float{
         Self{func: Arc::new(func), dim, beta: T::one()}
     }
 
-    fn with_beta(&self, beta: T)->Self{
+    pub fn with_beta(&self, beta: T)->Self{
         Self { func: Arc::clone(&self.func), beta, dim: self.dim }
     }
 }

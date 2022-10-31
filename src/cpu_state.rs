@@ -253,12 +253,6 @@ where
     fn potential_energy(&self) -> T {
         self.potential_energy
     }
-
-    fn swap(&mut self, other: &mut Self){
-        let inner1=self.try_mut_inner().expect("error");
-        let inner2=other.try_mut_inner().expect("error");
-        std::mem::swap(inner1, inner2);
-    }
 }
 
 impl<T> State<T>

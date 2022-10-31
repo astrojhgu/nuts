@@ -104,7 +104,7 @@ pub mod math;
 pub mod nuts;
 pub mod stepsize;
 pub mod forward_autodiff;
-
+pub mod pt;
 pub use adapt_strategy::DualAverageSettings;
 pub use cpu_potential::{CpuLogpFunc
     , LogpFromFn

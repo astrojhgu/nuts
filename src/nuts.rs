@@ -182,8 +182,6 @@ where
     fn log_acceptance_probability(&self, initial_energy: T) -> T {
         (initial_energy - self.energy()).min(T::zero())
     }
-
-    fn swap(&mut self, other: &mut Self);
 }
 
 /// Information about a draw, exported as part of the sampler stats
@@ -649,8 +647,6 @@ where
 
     /// The dimensionality of the posterior.
     fn dim(&self) -> usize;
-
-    fn swap(&mut self, rhs: &mut Self);
 }
 
 pub struct NutsChain<T, P, S>
@@ -743,10 +739,6 @@ where
         self.strategy
             .init(&mut self.options, &mut self.potential, &self.current);
         Ok(())
-    }
-
-    fn swap(&mut self, rhs: &mut Self){
-        self.current.swap(&mut rhs.current);
     }
 
     fn draw<R>(&mut self, rng: &mut R) -> Result<(Vec<T>, Self::Stats)>
