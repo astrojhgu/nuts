@@ -4,7 +4,7 @@ use nuts::{
     new_sampler,
     nuts::State,
     pt::swap_chains,
-    Chain, CpuLogpFunc, LogpError, LogpFromFn, SampleStats, SamplerArgs,
+    Chain, CpuLogpFunc, LogpError, LogpFromFn, SamplerArgs,
 };
 use rand::SeedableRng;
 use std::io::Write;
@@ -52,7 +52,7 @@ fn main() {
     let mut sampler_args = SamplerArgs::<f64>::default();
 
     // and modify as we like
-    sampler_args.step_size_adapt.target_accept = 0.8.into();
+    sampler_args.step_size_adapt.target_accept = 0.8;
     sampler_args.num_tune = 1000;
     sampler_args.maxdepth = 20; // small value just for testing...
     sampler_args.mass_matrix_adapt.store_mass_matrix = true;
@@ -69,7 +69,7 @@ fn main() {
     let mut samplers = beta_list
         .iter()
         .map(|&b| {
-            let mut s = new_sampler(logp_func.with_beta(b), sampler_args.clone());
+            let mut s = new_sampler(logp_func.with_beta(b), sampler_args);
             s.set_position(&x0).unwrap();
             s
         })

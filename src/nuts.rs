@@ -643,7 +643,8 @@ where
 
     /// Draw a new sample and return the position and some diagnosic information.
     fn draw<R>(&mut self, rng: &mut R) -> Result<(Vec<T>, Self::Stats)>
-    where R: Rng;
+    where
+        R: Rng;
 
     /// The dimensionality of the posterior.
     fn dim(&self) -> usize;
@@ -671,7 +672,7 @@ where
     S: AdaptStrategy<T, Potential = P>,
 {
     pub fn new(mut potential: P, strategy: S, options: NutsOptions) -> Self {
-        let pool_size: usize = options.maxdepth.checked_mul(2).unwrap().try_into().unwrap();
+        let pool_size: usize = options.maxdepth.checked_mul(2).unwrap();
         let mut pool = potential.new_pool(pool_size);
         let init = potential.new_empty_state(&mut pool);
         let collector = strategy.new_collector();
@@ -742,7 +743,8 @@ where
     }
 
     fn draw<R>(&mut self, rng: &mut R) -> Result<(Vec<T>, Self::Stats)>
-    where R: Rng
+    where
+        R: Rng,
     {
         let (state, info) = draw(
             &mut self.pool,

@@ -1,39 +1,32 @@
 use autodiff::Float;
 use nuts::{
-    forward_autodiff::{eval_grad, F},
-    new_sampler,
-    nuts::State,
-    pt::swap_chains,
-    Chain, LogpFromFn, SamplerArgs,
+    forward_autodiff::F, new_sampler, nuts::State, pt::swap_chains, Chain, LogpFromFn, SamplerArgs,
 };
 use rand::SeedableRng;
 use std::io::Write;
 
-
 type F64 = F<f64>;
 
-
-fn normal(input: &[F64], m: F64, s: F64)->F64{
-    (-input.iter().map(|&x| ((x-m)/s).powi(2)).sum::<F64>()).exp()/s.powi(input.len() as i32)
+fn normal(input: &[F64], m: F64, s: F64) -> F64 {
+    (-input.iter().map(|&x| ((x - m) / s).powi(2)).sum::<F64>()).exp() / s.powi(input.len() as i32)
 }
 
 fn posterior(input: &[F64]) -> F64 {
-    let s1=F64::from(5e-2);
-    let s2=F64::from(1e-1);
-    let m1=F64::from(-1.0);
-    let m2=F64::from(1.0);
-    
-    (normal(input, m1, s1)+normal(input, m2, s2)).ln()
-}
+    let s1 = F64::from(5e-2);
+    let s2 = F64::from(1e-1);
+    let m1 = F64::from(-1.0);
+    let m2 = F64::from(1.0);
 
+    (normal(input, m1, s1) + normal(input, m2, s2)).ln()
+}
 
 fn main() {
     // We get the default sampler arguments
     let mut sampler_args = SamplerArgs::<f64>::default();
 
-    const DIM:usize=2;
+    const DIM: usize = 2;
     // and modify as we like
-    sampler_args.step_size_adapt.target_accept = 0.8.into();
+    sampler_args.step_size_adapt.target_accept = 0.8;
     sampler_args.num_tune = 1000;
     sampler_args.maxdepth = 200; // small value just for testing...
     sampler_args.mass_matrix_adapt.store_mass_matrix = true;
@@ -50,7 +43,7 @@ fn main() {
     let mut samplers = beta_list
         .iter()
         .map(|&b| {
-            let mut s = new_sampler(logp_func.with_beta(b), sampler_args.clone());
+            let mut s = new_sampler(logp_func.with_beta(b), sampler_args);
             s.set_position(&x0).unwrap();
             s
         })

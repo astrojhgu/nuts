@@ -39,16 +39,17 @@ impl Limits<f64> for f64 {
 }
 
 impl<T> Limits<FT<T>> for FT<T>
-where T: Limits<T>+Float+Debug{
-    fn lower_limit() -> FT<T>{
+where
+    T: Limits<T> + Float + Debug,
+{
+    fn lower_limit() -> FT<T> {
         T::lower_limit().into()
     }
 
-    fn upper_limit() -> FT<T>{
+    fn upper_limit() -> FT<T> {
         T::upper_limit().into()
     }
 }
-
 
 pub struct DualAverageStrategy<T, F, M>
 where
@@ -221,7 +222,7 @@ where
 impl<T: Float + Limits<T> + Send + Clone + Debug + Float + 'static, F: CpuLogpFunc<T>>
     AdaptStrategy<T> for ExpWindowDiagAdapt<T, F>
 //where
-    //StandardNormal: Distribution<T>,
+//StandardNormal: Distribution<T>,
 {
     type Potential = EuclideanPotential<T, F, DiagMassMatrix<T>>;
     type Collector = DrawGradCollector<T>;
@@ -488,4 +489,3 @@ where
         self.collector2.register_init(state, options);
     }
 }
-

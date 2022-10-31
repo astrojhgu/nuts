@@ -1,20 +1,17 @@
-use std::{fmt::Debug
-    , sync::Arc, rc::Rc
-};
-
-
+use std::{fmt::Debug, rc::Rc, sync::Arc};
 
 use num::Float;
 
-use thiserror::Error;
 use crate::{
     cpu_state::{InnerState, State, StatePool},
+    forward_autodiff::{eval_grad, F},
     mass_matrix::MassMatrix,
     nuts::{
-        AsSampleStatVec, Collector, Direction, DivergenceInfo, Hamiltonian, LogpError, NutsError,SampleStatValue
+        AsSampleStatVec, Collector, Direction, DivergenceInfo, Hamiltonian, LogpError, NutsError,
+        SampleStatValue,
     },
-    forward_autodiff::{F, eval_grad},
 };
+use thiserror::Error;
 
 /// Compute the unnormalized log probability density of the posterior
 ///
@@ -31,10 +28,8 @@ pub trait CpuLogpFunc<T> {
     fn dim(&self) -> usize;
 }
 
-
 #[derive(Debug, Error)]
 pub enum EmptyLogpError {}
-
 
 impl LogpError for EmptyLogpError {
     fn is_recoverable(&self) -> bool {
@@ -44,42 +39,54 @@ impl LogpError for EmptyLogpError {
 
 #[derive(Clone)]
 pub struct LogpFromFn<T>
-where T: Float
+where
+    T: Float,
 {
+    #[allow(clippy::type_complexity)]
     pub func: Arc<dyn Fn(&[F<T>]) -> F<T>>,
     pub beta: T,
-    pub dim: usize
+    pub dim: usize,
 }
 
-
 impl<T> CpuLogpFunc<T> for LogpFromFn<T>
-where T: Float
+where
+    T: Float,
 {
-    type Err=EmptyLogpError;
-    fn dim(&self)->usize{
+    type Err = EmptyLogpError;
+    fn dim(&self) -> usize {
         self.dim
     }
 
-    fn logp(&mut self, position: &[T], grad: &mut [T]) -> Result<T, Self::Err>{
+    fn logp(&mut self, position: &[T], grad: &mut [T]) -> Result<T, Self::Err> {
         let logp = eval_grad(self.func.as_ref(), position, grad);
-        grad.iter_mut().for_each(|x| *x=*x*self.beta);
-        Ok(logp*self.beta)
+        grad.iter_mut().for_each(|x| *x = *x * self.beta);
+        Ok(logp * self.beta)
     }
 }
 
 impl<T> LogpFromFn<T>
-where T: Float{
-    pub fn new<G>(func: G, dim: usize)->Self
-    where G: Fn(&[F<T>]) -> F<T>+'static
+where
+    T: Float,
+{
+    pub fn new<G>(func: G, dim: usize) -> Self
+    where
+        G: Fn(&[F<T>]) -> F<T> + 'static,
     {
-        Self{func: Arc::new(func), dim, beta: T::one()}
+        Self {
+            func: Arc::new(func),
+            dim,
+            beta: T::one(),
+        }
     }
 
-    pub fn with_beta(&self, beta: T)->Self{
-        Self { func: Arc::clone(&self.func), beta, dim: self.dim }
+    pub fn with_beta(&self, beta: T) -> Self {
+        Self {
+            func: Arc::clone(&self.func),
+            beta,
+            dim: self.dim,
+        }
     }
 }
-
 
 #[derive(Debug)]
 pub struct DivergenceInfoImpl<T: Clone, E: Send + std::error::Error> {
@@ -190,7 +197,9 @@ impl<T: Float + Send + Debug + Clone + 'static, F: CpuLogpFunc<T>, M: MassMatrix
         initial_energy: T,
         collector: &mut C,
     ) -> Result<Result<Self::State, Self::DivergenceInfo>, NutsError> {
-        let mut out = State{inner: Rc::new(pool.pull_owned())};
+        let mut out = State {
+            inner: Rc::new(pool.pull_owned()),
+        };
 
         let sign = match dir {
             Direction::Forward => 1,
@@ -251,7 +260,9 @@ impl<T: Float + Send + Debug + Clone + 'static, F: CpuLogpFunc<T>, M: MassMatrix
         pool: &mut Arc<StatePool<InnerState<T>>>,
         init: &[T],
     ) -> Result<Self::State, NutsError> {
-        let mut state = State{inner: Rc::new(pool.pull_owned())};
+        let mut state = State {
+            inner: Rc::new(pool.pull_owned()),
+        };
         {
             let inner = state.try_mut_inner().expect("State already in use");
             inner.q.copy_from_slice(init);
@@ -276,15 +287,15 @@ impl<T: Float + Send + Debug + Clone + 'static, F: CpuLogpFunc<T>, M: MassMatrix
     }
 
     fn new_empty_state(&mut self, pool: &mut Arc<StatePool<InnerState<T>>>) -> Self::State {
-        State{
-            inner: Rc::new(pool.pull_owned())
+        State {
+            inner: Rc::new(pool.pull_owned()),
         }
     }
 
     fn new_pool(&mut self, _capacity: usize) -> Arc<StatePool<InnerState<T>>> {
         //StatePool::new(self.dim())
-        let dim=self.dim();
-        Arc::new(StatePool::new(move|| InnerState::new(dim), |_|{}))
+        let dim = self.dim();
+        Arc::new(StatePool::new(move || InnerState::new(dim), |_| {}))
     }
 
     fn dim(&self) -> usize {

@@ -87,8 +87,11 @@ pub enum ParallelSamplingError {
 
 pub type ParallelChainResult = Result<(), ParallelSamplingError>;
 
-
-pub type NutsChainT<T, F>=NutsChain<T, EuclideanPotential<T, F, DiagMassMatrix<T>>, CombinedStrategy<DualAverageStrategy<T, F, DiagMassMatrix<T>>, ExpWindowDiagAdapt<T, F>>>;
+pub type NutsChainT<T, F> = NutsChain<
+    T,
+    EuclideanPotential<T, F, DiagMassMatrix<T>>,
+    CombinedStrategy<DualAverageStrategy<T, F, DiagMassMatrix<T>>, ExpWindowDiagAdapt<T, F>>,
+>;
 
 /// Create a new sampler
 pub fn new_sampler<T: Copy + Float + Debug + Send + Limits<T> + 'static, F: CpuLogpFunc<T>>(
@@ -161,4 +164,3 @@ where
         }
     }
 }
-

@@ -1,6 +1,6 @@
 use itertools::izip;
 use num::Float;
-use rand_distr::{StandardNormal};
+use rand_distr::StandardNormal;
 
 use std::fmt::Debug;
 
@@ -40,8 +40,8 @@ where
 {
     pub fn new(ndim: usize) -> Self {
         Self {
-            inv_stds: vec![T::zero(); ndim].into(),
-            variance: vec![T::zero(); ndim].into(),
+            inv_stds: vec![T::zero(); ndim],
+            variance: vec![T::zero(); ndim],
         }
     }
 
@@ -83,7 +83,7 @@ where
             .iter_mut()
             .zip(self.inv_stds.iter())
             .for_each(|(p, &s)| {
-                let norm: T = T::from(rng.sample::<f64,_>(StandardNormal)).unwrap();
+                let norm: T = T::from(rng.sample::<f64, _>(StandardNormal)).unwrap();
                 *p = s * norm;
             });
     }
@@ -104,8 +104,8 @@ where
 {
     pub fn new(dim: usize, alpha: T, use_mean: bool) -> Self {
         ExpWeightedVariance {
-            mean: vec![T::zero(); dim].into(),
-            variance: vec![T::zero(); dim].into(),
+            mean: vec![T::zero(); dim],
+            variance: vec![T::zero(); dim],
             count: 0,
             alpha,
             use_mean,
@@ -211,8 +211,8 @@ where
 {
     pub fn new(dim: usize) -> Self {
         DrawGradCollector {
-            draw: vec![T::zero(); dim].into(),
-            grad: vec![T::zero(); dim].into(),
+            draw: vec![T::zero(); dim],
+            grad: vec![T::zero(); dim],
             is_good: true,
         }
     }

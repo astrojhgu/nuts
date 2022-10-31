@@ -99,20 +99,17 @@ pub mod adapt_strategy;
 pub mod cpu_potential;
 pub mod cpu_sampler;
 pub mod cpu_state;
+pub mod forward_autodiff;
 pub mod mass_matrix;
 pub mod math;
 pub mod nuts;
-pub mod stepsize;
-pub mod forward_autodiff;
 pub mod pt;
+pub mod stepsize;
 pub use adapt_strategy::DualAverageSettings;
-pub use cpu_potential::{CpuLogpFunc
-    , LogpFromFn
-    , EmptyLogpError
-};
+pub use cpu_potential::{CpuLogpFunc, EmptyLogpError, LogpFromFn};
 pub use cpu_sampler::{
-    new_sampler, InitPointFunc,
-    JitterInitFunc, ParallelChainResult, ParallelSamplingError, SamplerArgs,
+    new_sampler, InitPointFunc, JitterInitFunc, ParallelChainResult, ParallelSamplingError,
+    SamplerArgs,
 };
 pub use mass_matrix::DiagAdaptExpSettings;
 pub use nuts::{Chain, DivergenceInfo, LogpError, NutsError, SampleStatValue, SampleStats};

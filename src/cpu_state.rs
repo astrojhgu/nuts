@@ -1,8 +1,4 @@
-use std::{
-    fmt::Debug,
-    ops::Deref,
-    rc::{Rc}, sync::Arc,
-};
+use std::{fmt::Debug, ops::Deref, rc::Rc, sync::Arc};
 
 pub type StatePool<T> = lockfree_object_pool::LinearObjectPool<T>;
 pub type InnerStateReusable<T> = lockfree_object_pool::LinearOwnedReusable<T>;
@@ -27,9 +23,20 @@ where
 }
 
 impl<T> InnerState<T>
-where T: Clone+Float{
-    pub fn new(dim: usize)->Self{
-        InnerState { p: vec![T::zero(); dim], q: vec![T::zero(); dim], v: vec![T::zero(); dim], p_sum: vec![T::zero(); dim], grad: vec![T::zero(); dim], idx_in_trajectory: 0, kinetic_energy: T::zero(), potential_energy: T::zero() }
+where
+    T: Clone + Float,
+{
+    pub fn new(dim: usize) -> Self {
+        InnerState {
+            p: vec![T::zero(); dim],
+            q: vec![T::zero(); dim],
+            v: vec![T::zero(); dim],
+            p_sum: vec![T::zero(); dim],
+            grad: vec![T::zero(); dim],
+            idx_in_trajectory: 0,
+            kinetic_energy: T::zero(),
+            potential_energy: T::zero(),
+        }
     }
 }
 
@@ -72,7 +79,7 @@ where
 {
     pub fn try_mut_inner(&mut self) -> Result<&mut InnerState<T>> {
         match Rc::get_mut(&mut self.inner) {
-            Some(val) => Ok( val),
+            Some(val) => Ok(val),
             None => Err(StateInUse {}),
         }
     }
@@ -194,4 +201,3 @@ where
             .idx_in_trajectory
     }
 }
-
