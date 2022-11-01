@@ -17,18 +17,16 @@ use crate::{
     stepsize::{AcceptanceRateCollector, DualAverage, DualAverageOptions},
 };
 
-pub trait Limits<T>
-where
-    T: Float,
+pub trait Limits:Float
 {
-    fn lower_limit() -> T;
-    fn upper_limit() -> T;
-    fn clamp(x: &T) -> T {
-        x.max(Self::lower_limit()).min(Self::upper_limit())
+    fn lower_limit() -> Self;
+    fn upper_limit() -> Self;
+    fn clamp(&self) -> Self {
+        self.max(Self::lower_limit()).min(Self::upper_limit())
     }
 }
 
-impl Limits<f64> for f64 {
+impl Limits for f64 {
     fn lower_limit() -> f64 {
         1e-10
     }
@@ -38,9 +36,9 @@ impl Limits<f64> for f64 {
     }
 }
 
-impl<T> Limits<FT<T>> for FT<T>
+impl<T> Limits for FT<T>
 where
-    T: Limits<T> + Float + Debug,
+    T: Limits + Float + Debug,
 {
     fn lower_limit() -> FT<T> {
         T::lower_limit().into()
@@ -219,7 +217,7 @@ where
     }
 }
 
-impl<T: Float + Limits<T> + Send + Clone + Debug + Float + 'static, F: CpuLogpFunc<T>>
+impl<T: Float + Limits + Send + Clone + Debug + Float + 'static, F: CpuLogpFunc<T>>
     AdaptStrategy<T> for ExpWindowDiagAdapt<T, F>
 //where
 //StandardNormal: Distribution<T>,
@@ -269,7 +267,7 @@ impl<T: Float + Limits<T> + Send + Clone + Debug + Float + 'static, F: CpuLogpFu
                 self.exp_variance_grad.current(),
             )
             .map(|(&draw, &grad)| {
-                let val = <T as Limits<T>>::clamp(&(draw / grad).sqrt());
+                let val = <T as Limits>::clamp(&(draw / grad).sqrt());
                 assert!(val.is_finite());
                 val
             }),
@@ -322,7 +320,7 @@ impl<T: Float + Limits<T> + Send + Clone + Debug + Float + 'static, F: CpuLogpFu
                         self.exp_variance_grad.current(),
                     )
                     .map(|(&draw, &grad)| {
-                        let val = <T as Limits<T>>::clamp(&(draw / grad).sqrt());
+                        let val = <T as Limits>::clamp(&(draw / grad).sqrt());
                         assert!(val.is_finite());
                         val
                     }),

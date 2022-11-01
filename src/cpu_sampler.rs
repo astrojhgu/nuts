@@ -1,19 +1,15 @@
-use num::Float;
-use rand::{Rng, SeedableRng};
-use std::fmt::Debug;
-use thiserror::Error;
-use rand::rngs::{
-    SmallRng
-};
 use crate::{
     adapt_strategy::{
         CombinedStrategy, DualAverageSettings, DualAverageStrategy, ExpWindowDiagAdapt, Limits,
     },
-    cpu_potential::EuclideanPotential,
+    cpu_potential::{CpuLogpFunc, EuclideanPotential},
     mass_matrix::{DiagAdaptExpSettings, DiagMassMatrix},
-    nuts::{NutsChain, NutsError, NutsOptions, SampleStats},
-    CpuLogpFunc, Chain,
+    nuts::{Chain, NutsChain, NutsError, NutsOptions, SampleStats},
 };
+use num::Float;
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
+use std::fmt::Debug;
 
 /// Settings for the NUTS sampler
 #[derive(Clone, Copy)]
@@ -53,42 +49,6 @@ where
     }
 }
 
-/// Propose new initial points for a sampler
-///
-/// This trait can be implemented by users to control how the different
-/// chains should be initialized when using [`sample_parallel`].
-pub trait InitPointFunc<T>
-where
-    T: Float,
-{
-    fn new_init_point<R: Rng + ?Sized>(&mut self, rng: &mut R, out: &mut [T]);
-}
-
-#[non_exhaustive]
-#[derive(Error, Debug)]
-pub enum ParallelSamplingError {
-    #[error("Could not send sample to controller thread")]
-    ChannelClosed(),
-    #[error("Nuts failed because of unrecoverable logp function error: {source}")]
-    NutsError {
-        #[from]
-        source: NutsError,
-    },
-    #[error("Initialization of first point failed")]
-    InitError { source: NutsError },
-    #[error("Timeout occured while waiting for next sample")]
-    Timeout,
-    #[error("Drawing sample paniced")]
-    Panic,
-    #[error("Creating a logp function failed")]
-    LogpFuncCreation {
-        #[from]
-        source: Box<dyn std::error::Error + Send + Sync>,
-    },
-}
-
-pub type ParallelChainResult = Result<(), ParallelSamplingError>;
-
 pub type NutsChainT<T, F> = NutsChain<
     T,
     EuclideanPotential<T, F, DiagMassMatrix<T>>,
@@ -96,7 +56,7 @@ pub type NutsChainT<T, F> = NutsChain<
 >;
 
 /// Create a new sampler
-pub fn new_sampler<T: Copy + Float + Debug + Send + Limits<T> + 'static, F: CpuLogpFunc<T>>(
+pub fn new_sampler<T: Copy + Float + Debug + Send + Limits + 'static, F: CpuLogpFunc<T>>(
     logp: F,
     settings: SamplerArgs<T>,
 ) -> NutsChainT<T, F>
@@ -125,60 +85,18 @@ pub fn new_sampler<T: Copy + Float + Debug + Send + Limits<T> + 'static, F: CpuL
     NutsChain::new(potential, strategy, options)
 }
 
-/// Initialize chains using uniform jitter around zero or some other provided value
-#[derive(Default)]
-pub struct JitterInitFunc<T> {
-    mu: Option<Vec<T>>,
-}
-
-impl<T> JitterInitFunc<T> {
-    /// Initialize new chains with jitter in [-1, 1] around zero
-    pub fn new() -> JitterInitFunc<T> {
-        JitterInitFunc { mu: None }
-    }
-
-    /// Initialize new chains with jitter in [mu - 1, mu + 1].
-    pub fn new_with_mean(mu: Vec<T>) -> Self {
-        Self { mu: Some(mu) }
-    }
-}
-
-impl<T> InitPointFunc<T> for JitterInitFunc<T>
-where
-    T: Float,
-{
-    fn new_init_point<R: Rng + ?Sized>(&mut self, rng: &mut R, out: &mut [T]) {
-        //rng.fill(out);
-        let mut out1 = vec![0.0_f64; out.len()];
-        rng.fill(&mut out1[..]);
-        out.iter_mut()
-            .zip(out1.iter())
-            .for_each(|(a, &b)| *a = T::from(b).unwrap());
-        let one = T::one();
-        let two = one + one;
-        if self.mu.is_none() {
-            out.iter_mut().for_each(|val| *val = two * *val - one);
-        } else {
-            let mu = self.mu.as_ref().unwrap();
-            out.iter_mut()
-                .zip(mu.iter().copied())
-                .for_each(|(val, mu)| *val = two * *val - one + mu);
-        }
-    }
-}
-
-pub fn sample_sequentially<T, F>
-(
+pub fn sample_sequentially<T, F>(
     logp: F,
     settings: SamplerArgs<T>,
     start: &[T],
     draws: usize,
     seed: u64,
-) -> Result<impl Iterator<Item = Result<(Vec<T>, impl SampleStats<T>), NutsError>>, NutsError> 
-where T: Float+Debug+Send+Limits<T>+'static,
-F: CpuLogpFunc<T>
+) -> Result<impl Iterator<Item = Result<(Vec<T>, impl SampleStats<T>), NutsError>>, NutsError>
+where
+    T: Float + Debug + Send + Limits + 'static,
+    F: CpuLogpFunc<T>,
 {
-    let mut rng=SmallRng::seed_from_u64(seed);
+    let mut rng = SmallRng::seed_from_u64(seed);
     let mut sampler = new_sampler(logp, settings);
     sampler.set_position(start)?;
     Ok((0..draws).into_iter().map(move |_| sampler.draw(&mut rng)))

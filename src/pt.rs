@@ -4,10 +4,7 @@ use rand_distr::Uniform;
 
 use std::fmt::Debug;
 
-use crate::{
-    nuts::{AdaptStrategy, Hamiltonian, NutsChain, State},
-    Chain,
-};
+use crate::nuts::{AdaptStrategy, Chain, Hamiltonian, NutsChain, State};
 
 fn exchange_prob<T>(lp1: T, lp2: T, beta1: T, beta2: T) -> T
 where

@@ -1,10 +1,9 @@
 use autodiff::Float;
 use nuts::{
     forward_autodiff::{eval_grad, F},
-    new_sampler,
     nuts::State,
+    prelude::{new_sampler, Chain, CpuLogpFunc, LogpError, LogpFromFn, SamplerArgs},
     pt::swap_chains,
-    Chain, CpuLogpFunc, LogpError, LogpFromFn, SamplerArgs,
 };
 use rand::SeedableRng;
 use std::io::Write;

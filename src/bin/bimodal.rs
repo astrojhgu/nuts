@@ -1,6 +1,6 @@
 use autodiff::Float;
 use nuts::{
-    forward_autodiff::F, new_sampler, nuts::State, pt::swap_chains, Chain, LogpFromFn, SamplerArgs,
+    forward_autodiff::F,nuts::State, pt::swap_chains, prelude::{new_sampler,  Chain, LogpFromFn, SamplerArgs},
 };
 use rand::SeedableRng;
 use std::io::Write;
