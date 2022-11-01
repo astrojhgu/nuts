@@ -1,16 +1,18 @@
 use num::Float;
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 use std::fmt::Debug;
 use thiserror::Error;
-
+use rand::rngs::{
+    SmallRng
+};
 use crate::{
     adapt_strategy::{
         CombinedStrategy, DualAverageSettings, DualAverageStrategy, ExpWindowDiagAdapt, Limits,
     },
     cpu_potential::EuclideanPotential,
     mass_matrix::{DiagAdaptExpSettings, DiagMassMatrix},
-    nuts::{NutsChain, NutsError, NutsOptions},
-    CpuLogpFunc,
+    nuts::{NutsChain, NutsError, NutsOptions, SampleStats},
+    CpuLogpFunc, Chain,
 };
 
 /// Settings for the NUTS sampler
@@ -163,4 +165,21 @@ where
                 .for_each(|(val, mu)| *val = two * *val - one + mu);
         }
     }
+}
+
+pub fn sample_sequentially<T, F>
+(
+    logp: F,
+    settings: SamplerArgs<T>,
+    start: &[T],
+    draws: usize,
+    seed: u64,
+) -> Result<impl Iterator<Item = Result<(Vec<T>, impl SampleStats<T>), NutsError>>, NutsError> 
+where T: Float+Debug+Send+Limits<T>+'static,
+F: CpuLogpFunc<T>
+{
+    let mut rng=SmallRng::seed_from_u64(seed);
+    let mut sampler = new_sampler(logp, settings);
+    sampler.set_position(start)?;
+    Ok((0..draws).into_iter().map(move |_| sampler.draw(&mut rng)))
 }

@@ -105,6 +105,7 @@ pub mod math;
 pub mod nuts;
 pub mod pt;
 pub mod stepsize;
+
 pub use adapt_strategy::DualAverageSettings;
 pub use cpu_potential::{CpuLogpFunc, EmptyLogpError, LogpFromFn};
 pub use cpu_sampler::{
@@ -113,3 +114,4 @@ pub use cpu_sampler::{
 };
 pub use mass_matrix::DiagAdaptExpSettings;
 pub use nuts::{Chain, DivergenceInfo, LogpError, NutsError, SampleStatValue, SampleStats};
+pub use cpu_sampler::sample_sequentially;
